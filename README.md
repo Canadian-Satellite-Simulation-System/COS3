@@ -12,7 +12,7 @@ The backend lives in the `backend/` folder as a git submodule.
 ## Clone the project
 
 ```bash
-git clone --recurse-submodules https://github.com/[your-org]/COS3.git
+git clone --recurse-submodules git@github.com:Canadian-Satellite-Simulation-System/COS3.git
 cd COS3
 ```
 
@@ -51,9 +51,7 @@ Run the NOS3 commands from inside the backend folder:
 
 ```bash
 cd backend
-make prep      # first time only, slow
-make
-make launch
+./docker/run.sh
 ```
 
-Stop with `make stop`. If something gets stuck, run `make clean` and rebuild.
+Then follow the steps in the [backend](https://github.com/Canadian-Satellite-Simulation-System/COS3-backend) README to launch from the simulator.
