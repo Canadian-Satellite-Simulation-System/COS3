@@ -47,11 +47,14 @@ Forgetting the last three commands is the most common mistake: the backend is pu
 
 ## Run the simulation
 
-Run the NOS3 commands from inside the backend folder:
+Start the launcher (needs Python 3 and Docker Desktop):
 
 ```bash
-cd backend
-./docker/run.sh
+python3 server.py
 ```
 
-Then follow the steps in the [backend](https://github.com/Canadian-Satellite-Simulation-System/COS3-backend) README to launch from the simulator.
+Open http://localhost:3000 and click **Launch Simulation**. The launcher starts the NOS3 desktop container, runs `make launch` inside it, and opens COSMOS in the same tab once it responds at http://localhost:2900. To stop everything, go back to http://localhost:3000 and click **Stop Simulation**.
+
+### First-time setup
+
+On the first launch, the launcher also runs `make config`, `make prep` and `make` inside the container, skipping any step that has already been done. This pulls several GB of images and builds everything, so it can take a while; give Docker Desktop at least 8 GB RAM and 4 CPUs. See the [backend](https://github.com/Canadian-Satellite-Simulation-System/COS3-backend) README and [docker/README.md](backend/docker/README.md) for details.
