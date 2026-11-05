@@ -23,6 +23,7 @@ from constants import (
     COSMOS_TIMEOUT_S,
     COSMOS_URL,
     LAUNCH_TIMEOUT_S,
+    NOS3_42_DIR,
     NOS3_DIR,
     OPENC3_DIR,
     ROOT_DIR,
@@ -30,11 +31,14 @@ from constants import (
     STOP_TIMEOUT_S,
 )
 
-# First-time setup, in order. Each step runs only if its `test` check fails.
+# First-time setup, in order. Each step runs only if the folder it creates is missing.
 # (`make config` is not here: it runs on every launch, see Launcher.configure.)
+# `make` also runs `make gsw`, so the COSMOS step only runs when the flight software
+# is built but COSMOS isn't installed (e.g. the nos3-home volume was reset).
 SETUP_STEPS = [
-    (["-d", OPENC3_DIR], "make prep", "Preparing NOS3 (first run, this can take a while)…"),
+    (["-d", NOS3_42_DIR], "make prep", "Preparing NOS3 (first run, this can take a while)…"),
     (["-d", f"{NOS3_DIR}/fsw/build"], "make", "Building NOS3 (first run, this can take a while)…"),
+    (["-d", OPENC3_DIR], "make gsw", "Installing COSMOS (first run, this can take a while)…"),
 ]
 
 # `make` installs these two config files into the build folders. Copy them again after

@@ -15,7 +15,11 @@ CONTAINER = "nos3-desktop"
 CONTAINER_USER = "jstar"
 BACKEND_DIR = ROOT_DIR / "backend"
 NOS3_DIR = "/home/jstar/nos3"
-OPENC3_DIR = "/home/jstar/.nos3/openc3"
+USER_NOS3_DIR = "/home/jstar/.nos3"
+# Created by `make prep`
+NOS3_42_DIR = f"{USER_NOS3_DIR}/42"
+# Created by `make gsw` (COSMOS / OpenC3)
+OPENC3_DIR = f"{USER_NOS3_DIR}/openc3"
 
 SETUP_TIMEOUT_S = 2 * 60 * 60
 LAUNCH_TIMEOUT_S = 10 * 60

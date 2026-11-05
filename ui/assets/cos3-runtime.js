@@ -145,6 +145,8 @@
     const frag = document.createDocumentFragment();
     processChildren(pageTemplate.content, vals || {}, frag);
     app.replaceChildren(frag);
+    // Lets shared parts (e.g. the header's live status in layout.js) update the new DOM
+    for (const fn of window.COS3.onRender || []) fn(app);
   }
 
   // Scales the 1440 x 900 page so it always fits the browser window (no manual zoom needed).

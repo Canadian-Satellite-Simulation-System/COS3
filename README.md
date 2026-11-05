@@ -55,7 +55,7 @@ python3 ui_server.py
 
 Open http://localhost:3001. On the Setup Wizard, the **Default configuration** tab has a working **Launch simulation** button:
 
-- It starts the `nos3-desktop` container, runs any missing setup (`make config`, `make prep`, `make`), then `make launch`, and opens COSMOS at http://localhost:2900 once it responds. The logic is in `launcher.py`.
+- It starts the `nos3-desktop` container, runs `make config`, then any missing setup (`make prep`, `make`, `make gsw` for COSMOS), then `make launch`, and opens COSMOS at http://localhost:2900 once it responds. The logic is in `launcher.py`.
 - NOS3's terminal tabs and the 42 window open on the container's virtual desktop, not on your screen. To see them, use the **View NOS3 desktop** link (http://localhost:6080/vnc.html).
 - **Stop simulation** runs `make stop` and stops the container.
 
