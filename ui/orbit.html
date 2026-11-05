@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>COS3 – Orbit &amp; Ground Track</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* Styles used only on this page */
+.pnl{background:#fff;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid #E2E2E2}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Page markup. {{name}} values come from renderVals() in the script below.
+     Header and sidebar are shared: see assets/layout.js. -->
+<template id="page">
+<div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
+<div data-cos3="header" data-status="running"></div>
+<div style="flex:1;display:flex;min-height:0">
+<div data-cos3="nav" data-active="orbit"></div>
+<main style="flex:1;min-width:0;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+<div class="row" style="gap:12px"><h1 style="margin:0;font-size:22px">Orbit &amp; Ground Track</h1><div style="flex:1"></div></div>
+
+<div style="flex:1;min-height:0;display:flex;gap:16px">
+<section class="pnl" style="flex:1">
+<div class="row">
+<div role="group" aria-label="View" style="display:flex"><button class="btn sm on" style="border-radius:4px 0 0 4px">Orbit</button><button class="btn sm" style="border-radius:0 4px 4px 0;border-left:0">Attitude</button></div>
+<div style="flex:1"></div>
+<span class="tag">◆ 42 · position &amp; attitude</span>
+</div>
+<div style="flex:1;position:relative;display:flex">
+<div class="ph" style="flex:1"><span>3D orbit / attitude view</span></div>
+<div style="position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:6px">
+<button class="btn sm" aria-label="Zoom in" style="width:32px;height:32px;padding:0">+</button>
+<button class="btn sm" aria-label="Zoom out" style="width:32px;height:32px;padding:0">−</button>
+</div>
+</div>
+</section>
+
+<section class="pnl" style="width:300px;flex:none">
+<div class="row"><span class="h" style="flex:1">Current state</span><span class="tag">◆ 42</span></div>
+<div>
+<div class="kv"><span>Latitude</span><span>[—]°</span></div>
+<div class="kv"><span>Longitude</span><span>[—]°</span></div>
+<div class="kv"><span>Altitude</span><span>[—] km</span></div>
+<div class="kv"><span>Velocity</span><span>[—] km/s</span></div>
+<div class="kv"><span>Sun / eclipse</span><span>[—]</span></div>
+<div class="kv"><span>Next pass</span><span>[hh:mm] UTC</span></div>
+</div>
+<div class="slot" style="flex:1" aria-label="Placeholder for future information"></div>
+</section>
+</div>
+
+<section class="pnl" style="height:290px;flex:none">
+<div class="row"><span class="h" style="flex:1">Ground track</span><span class="tag">◆ 42</span></div>
+<div class="ph" style="flex:1"><span>2D world map · ground track + station</span></div>
+<div class="row" style="gap:12px">
+<span class="mono" style="font-size:12px;color:#555">−90 min</span>
+<input type="range" aria-label="Time" min="0" max="100" value="50" style="flex:1;margin:0">
+<span class="mono" style="font-size:12px;color:#555">+90 min</span>
+<button class="btn sm primary">Now</button>
+</div>
+</section>
+</main>
+</div>
+</div>
+</template>
+
+<script src="assets/cos3-runtime.js"></script>
+<script src="assets/layout.js"></script>
+<script>
+class Component extends DCLogic {
+  renderVals() { return { yes: true }; }
+}
+
+COS3.mount(Component, {});
+</script>
+</body>
+</html>

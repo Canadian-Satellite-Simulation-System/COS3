@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>COS3 – Telemetry</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* Styles used only on this page */
+th{text-align:left;font-weight:600;color:#444;border-bottom:1.5px solid #999;padding:8px 12px;background:#F4F4F4}
+td{border-bottom:1px solid #DDD;padding:8px 12px}
+input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px solid #999;border-radius:4px;padding:0 10px;box-sizing:border-box;background:#fff;color:#222;width:100%}
+.pnl{background:#fff;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.pk{display:flex;align-items:center;height:36px;padding:0 10px;border-radius:4px;font-size:13px;background:none;border:0;width:100%;text-align:left;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;color:#222}
+.pk.on{background:#222;color:#fff;font-weight:600}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Page markup. {{name}} values come from renderVals() in the script below.
+     Header and sidebar are shared: see assets/layout.js. -->
+<template id="page">
+<div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
+<div data-cos3="header" data-status="running"></div>
+<div style="flex:1;display:flex;min-height:0">
+<div data-cos3="nav" data-active="telemetry"></div>
+<main style="flex:1;min-width:0;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+<div class="row" style="gap:12px">
+<h1 style="margin:0;font-size:22px">Telemetry</h1>
+<div style="flex:1"></div>
+<span style="font-size:12px;color:#555">View from</span>
+<div role="group" aria-label="Telemetry source" style="display:flex">
+<button class="btn sm {{gCls}}" onClick="{{toG}}" style="border-radius:4px 0 0 4px">Ground software</button>
+<button class="btn sm {{fCls}}" onClick="{{toF}}" style="border-radius:0 4px 4px 0;border-left:0">Flight software (direct)</button>
+</div>
+<span class="tag">{{srcTag}}</span>
+</div>
+
+<div style="flex:1;min-height:0;display:flex;gap:16px">
+<section class="pnl" style="width:230px;flex:none">
+<div class="row"></div>
+<div style="display:flex;flex-direction:column;gap:2px">
+<template data-for="{{pages}}" data-as="p">
+<button class="pk {{p.cls}}" onClick="{{p.pick}}">{{p.name}}</button>
+</template>
+</div>
+<div style="flex:1"></div>
+
+
+</section>
+
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
+<div class="row">
+<span style="font-weight:700;font-size:16px;flex:1">{{sel}}</span>
+<input type="search" placeholder="Filter items…" aria-label="Filter items" style="width:200px">
+
+
+
+</div>
+
+<div style="flex:1;min-height:0;display:flex;gap:16px">
+<section class="box" style="flex:1;overflow:hidden">
+<table>
+<thead><tr><th>Item</th><th>Value</th><th>Units</th><th>Limit</th><th>Time (UTC)</th></tr></thead>
+<tbody>
+<template data-for="{{items}}" data-as="it">
+<tr><td class="mono">{{it.n}}</td><td class="mono" style="font-weight:600">[value]</td><td>{{it.u}}</td><td><span class="lim" style="{{it.ls}}">{{it.l}}</span></td><td class="mono" style="color:#555">[hh:mm:ss]</td></tr>
+</template>
+</tbody>
+</table>
+</section>
+<section class="pnl" style="width:260px;flex:none">
+<div class="row"><span class="h" style="flex:1">Alarms</span><span class="tag">◆ Limits</span></div>
+<template data-for="{{alarms}}" data-as="a">
+<div style="border:1px solid #CCC;border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:4px">
+<div class="row"><span class="lim" style="{{a.ls}}">{{a.l}}</span><span class="mono" style="font-size:12px;font-weight:600">{{a.item}}</span></div>
+<span class="mono" style="font-size:11px;color:#555">[hh:mm:ss]</span>
+</div>
+</template>
+<div style="flex:1"></div>
+
+</section>
+</div>
+
+<div style="height:210px;flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+<section class="pnl"><span class="h">Wheel speeds</span><div class="ph" style="flex:1"><span>Line chart</span></div></section>
+<section class="pnl"><span class="h">Wheel momentum</span><div class="ph" style="flex:1"><span>Line chart</span></div></section>
+
+</div>
+<span style="font-size:12px;color:#555">All telemetry and commands are logged with timestamps for export and replay.</span>
+</div>
+</div>
+</main>
+</div>
+</div>
+</template>
+
+<script src="assets/cos3-runtime.js"></script>
+<script src="assets/layout.js"></script>
+<script>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sel: 'Reaction wheel', src: 'g' }; }
+  renderVals() {
+    const names = ['Overview', 'Reaction wheel', 'Magnetorquer', 'Fine sun sensors', 'Photodiode'];
+    const pages = names.map((n) => ({ name: n, cls: n === this.state.sel ? 'on' : '', pick: () => this.setState({ sel: n }) }));
+    const yel = 'border-style:dashed;';
+    const red = 'background:#222;color:#fff;';
+    const items = [
+      { n: 'WHEEL_1_SPEED', u: 'rpm', l: 'OK', ls: '' },
+      { n: 'WHEEL_2_SPEED', u: 'rpm', l: 'RED', ls: red },
+      { n: 'WHEEL_3_SPEED', u: 'rpm', l: 'OK', ls: '' },
+      { n: 'WHEEL_1_TORQUE', u: 'mNm', l: 'OK', ls: '' },
+      { n: 'MOMENTUM', u: 'Nms', l: 'YELLOW', ls: yel },
+      { n: 'MODE', u: '—', l: 'OK', ls: '' },
+      { n: 'CMD_COUNT', u: '—', l: 'OK', ls: '' }
+    ];
+    const alarms = [{ l: 'RED', ls: red, item: 'WHEEL_2_SPEED' }, { l: 'YELLOW', ls: yel, item: 'MOMENTUM' }];
+    const g = this.state.src === 'g';
+    return {
+      yes: true, pages, items, alarms, sel: this.state.sel,
+      gCls: g ? 'on' : '', fCls: g ? '' : 'on',
+      srcTag: g ? '◆ Ground software (COSMOS)' : '◆ Flight software direct',
+      toG: () => this.setState({ src: 'g' }), toF: () => this.setState({ src: 'f' })
+    };
+  }
+}
+
+COS3.mount(Component, {});
+</script>
+</body>
+</html>

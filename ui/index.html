@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>COS3 – Setup Wizard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* Styles used only on this page */
+input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px solid #999;border-radius:4px;padding:0 10px;box-sizing:border-box;background:#fff;color:#222;width:100%}
+.fld{display:flex;flex-direction:column;gap:4px}
+.pnl{background:#fff;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-height:0}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 0;border-bottom:1px solid #E2E2E2}
+.dc{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.dc .kv{padding:4px 0}
+.dc .kv:last-child{border-bottom:0}
+.src{font-size:11px;color:#777}
+.gs{display:flex;align-items:center;gap:6px;min-height:30px}
+.gs input,.gs select{height:28px}
+.cchip{font:500 12px 'IBM Plex Sans',sans-serif;border:1.5px solid #222;padding:2px 8px;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Page markup. {{name}} values come from renderVals() in the script below.
+     Header and sidebar are shared: see assets/layout.js. -->
+<template id="page">
+<div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
+<div data-cos3="header" data-status="not-started"></div>
+<div style="flex:1;display:flex;min-height:0">
+<div data-cos3="nav" data-active="wizard"></div>
+<main style="flex:1;min-width:0;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px">
+<div class="row" style="gap:12px">
+<h1 style="margin:0;font-size:22px">Setup Wizard</h1>
+
+
+<div style="flex:1"></div>
+
+
+</div>
+
+<div class="box" role="group" aria-label="Configuration source" style="display:flex;overflow:hidden">
+<template data-for="{{modes}}" data-as="m">
+<button class="seg {{m.cls}}" onClick="{{m.pick}}">{{m.label}}</button>
+</template>
+</div>
+
+<div style="flex:1;min-height:0;display:flex;gap:16px">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+
+<template data-if="{{mDef}}">
+<section class="pnl" style="flex:1;overflow:auto">
+<div class="row"><span class="h" style="flex:1">Default configuration</span><span style="font-size:12px;color:#555">Runs as is, no changes needed</span><span class="tag">◆ backend/cfg · make config</span></div>
+<template data-if="{{cfgLoading}}"><span style="font-size:13px;color:#555">Loading the default configuration…</span></template>
+<template data-if="{{cfgError}}"><div class="box" style="padding:12px 14px;border-style:dashed;font-size:13px">{{cfgError}}</div></template>
+<template data-if="{{cfgReady}}">
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+
+<div class="box dc">
+<div class="row"><span class="h" style="font-size:11px;flex:1">Mission</span><span class="mono src">{{cfgFile}}</span></div>
+<div><template data-for="{{missionRows}}" data-as="k"><div class="kv"><span>{{k.l}}</span><span>{{k.v}}</span></div></template></div>
+</div>
+
+<div class="box dc">
+<div class="row"><span class="h" style="font-size:11px;flex:1">Satellites · orbit</span><span class="mono src">{{satFile}}</span></div>
+<div><template data-for="{{satRows}}" data-as="k"><div class="kv"><span>{{k.l}}</span><span>{{k.v}}</span></div></template></div>
+</div>
+
+<div class="box dc">
+<div class="row"><span class="h" style="font-size:11px;flex:1">Components · {{compCount}}</span><span class="mono src">{{satFile}}</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:6px">
+<template data-for="{{compsOn}}" data-as="c"><span class="cchip">{{c}}</span></template>
+</div>
+<template data-if="{{compsOff}}"><span style="font-size:12px;color:#555">Disabled: {{compsOff}}</span></template>
+</div>
+
+<div class="box dc">
+<div class="row"><span class="h" style="font-size:11px;flex:1">Ground link</span><span class="mono src">launch.sh</span></div>
+<div>
+<div class="kv"><span>Ground software</span><span>{{gswLabel}}</span></div>
+<div class="kv"><span>Connection</span><span>Radio sim, always connected</span></div>
+</div>
+<div class="row" style="margin-top:4px"><span class="h" style="font-size:11px;flex:1">42 display markers · {{staCount}} (visual only)</span><span class="mono src">{{simFile}}</span></div>
+<div><template data-for="{{stations}}" data-as="g"><div class="kv" style="color:#555"><span>{{g.name}}</span><span>{{g.pos}}</span></div></template></div>
+</div>
+
+<div class="box dc">
+<span class="h" style="font-size:11px">Fault scenario</span>
+<span style="font-size:13px">None</span>
+</div>
+
+<div class="box dc">
+<span class="h" style="font-size:11px">Hardware-in-the-Loop</span>
+<span style="font-size:13px">Off</span>
+</div>
+
+</div>
+</template>
+</section>
+</template>
+
+<template data-if="{{mSaved}}">
+<section class="pnl" style="flex:1;padding:0;overflow:hidden">
+<div class="row" style="padding:14px 16px 4px"><span class="h" style="flex:1">Saved configurations</span><button class="btn sm">Import configuration…</button></div>
+<div style="margin-top:6px">
+<div class="rowhead" style="grid-template-columns:2fr 1fr 1.4fr 1fr 1fr"><span>Name</span><span>Satellites</span><span>Fault scenario</span><span>Components</span><span>Ground Stations</span></div>
+<template data-for="{{saved}}" data-as="s">
+<button class="rowbtn {{s.cls}}" onClick="{{s.pick}}" style="grid-template-columns:2fr 1fr 1.4fr 1fr 1fr"><span class="mono" style="font-weight: 600">{{s.name}}</span><span>{{s.sats}}</span><span>{{s.fault}}</span><span>-&nbsp;</span><span>-</span></button>
+</template>
+</div>
+</section>
+</template>
+
+<template data-if="{{mCustom}}">
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+<section class="pnl">
+<div class="row"><span class="h" style="flex:1">Mission</span><span class="tag">◆ Flight software · time</span></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+<div class="fld"><label for="sd">Start (UTC)</label><input id="sd" class="mono" value="{{draftStart}}" onChange="{{setStart}}" placeholder="YYYY-MM-DD hh:mm:ss"></div>
+<div class="fld"><label for="du">Duration (hours)</label><input id="du" type="number" min="0.02" step="any" value="{{draftHours}}" onChange="{{setHours}}"></div>
+<div class="fld"><label for="sc">Scenario</label><select id="sc" onChange="{{setScenario}}"><template data-for="{{scenarioOpts}}" data-as="o"><option value="{{o.key}}" selected="{{o.sel}}">{{o.key}} · {{o.label}}</option></template></select></div>
+<div class="fld"><label for="fs">Fault scenario</label><select id="fs" disabled><option>None (coming later)</option></select></div>
+</div>
+</section>
+<section class="pnl">
+<div class="row"><span class="h" style="flex:1">Ground stations</span><span class="tag">◆ 42 · display only</span></div>
+<span style="font-size:12px;color:#555">Shown as markers in the 42 window. The ground link is {{gswLabel}} through the radio sim, always connected.</span>
+<div id="gs-list" style="max-height:124px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column">
+<template data-for="{{stationRows}}" data-as="g">
+<div class="gs">
+<input type="checkbox" checked="{{g.on}}" onChange="{{g.toggle}}" aria-label="Show {{g.name}}">
+<template data-if="{{g.fixed}}"><span style="flex:1;font-size:13px">{{g.name}}</span><span class="mono" style="font-size:12px;color:#555">{{g.pos}}</span></template>
+<template data-if="{{g.custom}}"><input value="{{g.name}}" onChange="{{g.setName}}" aria-label="Station name" style="flex:1;min-width:90px;width:auto;padding:0 6px"><select onChange="{{g.setWorld}}" aria-label="World" style="width:66px;padding:0 4px"><option value="Earth" selected="{{g.earth}}">Earth</option><option value="Luna" selected="{{g.luna}}">Moon</option></select><input type="number" step="any" min="-90" max="90" value="{{g.lat}}" onChange="{{g.setLat}}" aria-label="Latitude" title="Latitude (°)" placeholder="Lat" style="width:56px;padding:0 6px"><input type="number" step="any" min="-180" max="180" value="{{g.lon}}" onChange="{{g.setLon}}" aria-label="Longitude" title="Longitude (°)" placeholder="Lon" style="width:62px;padding:0 6px"><button class="lnk" onClick="{{g.remove}}" aria-label="Remove {{g.name}}" title="Remove" style="text-decoration:none;font-size:14px;padding:0 2px">✕</button></template>
+</div>
+</template>
+</div>
+<button class="btn sm" style="align-self:flex-start" onClick="{{addStation}}">+ Add station</button>
+</section>
+</div>
+
+<section class="pnl" style="flex:1;padding-top:10px">
+<div class="row" style="gap:4px;border-bottom:1.5px solid #222;margin:0 -16px;padding:0 16px">
+<button class="tab on">SAT-1</button>
+<div style="flex:1"></div>
+<span class="tag">◆ 1 satellite (NOS3)</span>
+</div>
+<div style="flex:1;min-height:0;display:flex;gap:16px">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div class="row"><span class="h" style="flex:1">Orbit · {{orbitDesc}}</span><span class="tag">◆ 42 · {{orbitFile}}</span></div>
+<template data-if="{{orbitFixed}}"><span style="font-size:12px;color:#555">This scenario uses a three-body orbit (Earth-Moon NRHO), set by the scenario. It is not described by altitudes and inclination.</span></template>
+<template data-if="{{orbitEditable}}">
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:520px">
+<div class="fld"><label for="pe">Periapsis (km)</label><input id="pe" type="number" min="100" step="any" value="{{draftPeri}}" onChange="{{setPeri}}"></div>
+<div class="fld"><label for="ap">Apoapsis (km)</label><input id="ap" type="number" min="100" step="any" value="{{draftApo}}" onChange="{{setApo}}"></div>
+<div class="fld"><label for="in">Inclination (°)</label><input id="in" type="number" min="0" max="180" step="any" value="{{draftInc}}" onChange="{{setInc}}"></div>
+</div>
+</template>
+<div class="row"><span class="h" style="flex:1">Components &amp; sensors</span><span class="tag">◆ NOS3 component sims + flight software drivers</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 12px">
+<template data-for="{{comps}}" data-as="c">
+<div class="cmp"><input type="checkbox" id="cmp-{{c.key}}" checked="{{c.on}}" onChange="{{c.toggle}}"><label for="cmp-{{c.key}}" style="font-size:13px;font-weight:400;color:#222;flex:1">{{c.name}}</label></div>
+</template>
+</div>
+</div>
+<div class="box" style="width:240px;flex:none;padding:12px;display:flex;flex-direction:column;gap:10px;background:#FAFAFA">
+<span class="h">Satellite</span>
+<span style="font-size:12px;font-weight:600;color:#444">Initial rotation (tipoff, deg/s)</span>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
+<div class="fld"><label for="tx">X</label><input id="tx" type="number" step="any" value="{{draftTx}}" onChange="{{setTx}}" disabled="{{tipoffDisabled}}"></div>
+<div class="fld"><label for="ty">Y</label><input id="ty" type="number" step="any" value="{{draftTy}}" onChange="{{setTy}}" disabled="{{tipoffDisabled}}"></div>
+<div class="fld"><label for="tz">Z</label><input id="tz" type="number" step="any" value="{{draftTz}}" onChange="{{setTz}}" disabled="{{tipoffDisabled}}"></div>
+</div>
+<template data-if="{{tipoffDisabled}}"><span style="font-size:11px;color:#555">NOS3 applies the tipoff to the STF1 spacecraft only.</span></template>
+<label class="opt" for="g42"><input type="checkbox" id="g42" checked="{{draftG42}}" onChange="{{setG42}}">42 graphics window</label>
+<span style="font-size:11px;color:#555">3D view of the satellite, opens on the NOS3 desktop.</span>
+<div style="flex:1"></div>
+<button class="btn sm" onClick="{{resetDraft}}">Reset to defaults</button>
+</div>
+</div>
+</section>
+</template>
+
+<template data-if="{{mReplay}}">
+<section class="pnl" style="flex:1;padding:0;overflow:hidden">
+<div class="row" style="padding:14px 16px 4px"><span class="h" style="flex:1">Recorded sessions</span><button class="btn sm">Import recording…</button></div>
+<div style="margin-top:6px">
+<div class="rowhead" style="grid-template-columns:1.2fr 2fr 1fr 1fr"><span>Recorded</span><span>Configuration</span><span>Duration</span><span>Owner</span></div>
+<template data-for="{{rec}}" data-as="r">
+<button class="rowbtn {{r.cls}}" onClick="{{r.pick}}" style="grid-template-columns:1.2fr 2fr 1fr 1fr"><span class="mono">[DATE hh:mm]</span><span class="mono" style="font-weight:600">{{r.cfg}}</span><span>[hh:mm]</span><span>{{r.owner}}</span></button>
+</template>
+</div>
+</section>
+</template>
+
+</div>
+
+<div style="width:300px;flex:none;display:flex;flex-direction:column;gap:14px">
+<section class="pnl" style="flex:1">
+<span class="h">Selected</span>
+<span class="mono" style="font-size:14px;font-weight:600">{{file}}</span>
+<div>
+<div class="kv"><span>Satellites</span><span>{{nSats}}</span></div>
+<div class="kv"><span>Ground link</span><span>{{nSta}}</span></div>
+<div class="kv"><span>Fault scenario</span><span>None</span></div>
+<div class="kv"><span>Hardware-in-the-Loop</span><span>Off</span></div>
+</div>
+<span class="tag" style="align-self:flex-start">◆ Writes NOS3 config files</span>
+<div style="flex:1"></div>
+<div class="row"><button class="btn" style="flex:1" disabled title="Saving configurations: coming later">Save</button></div>
+</section>
+<button class="btn primary" onClick="{{launchClick}}" disabled="{{launchDisabled}}" style="height:52px;font-size:15px">{{launch}}</button>
+<span role="status" style="font-size:12px;color:#555;text-align:center;min-height:16px">{{simMsg}}</span>
+<div class="row" style="justify-content:center;gap:16px">
+<template data-if="{{showDesktop}}"><a href="{{desktopUrl}}" target="_blank" rel="noopener" style="font-size:12px">View NOS3 desktop ↗</a></template>
+<template data-if="{{showStop}}"><button class="lnk" onClick="{{stopClick}}" disabled="{{stopDisabled}}">■ Stop simulation</button></template>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</template>
+
+<script src="assets/cos3-runtime.js"></script>
+<script src="assets/layout.js"></script>
+<script src="assets/api.js"></script>
+<script>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    // sim: last status from the server (null until loaded); launching: redirect to COSMOS once running
+    // cfg: default NOS3 configuration from the server (null until loaded)
+    this.state = { mode: props.shownTab || 'default', saved: 0, rec: 0, sim: null, launching: false, cfg: null };
+  }
+  componentDidUpdate(prev) { if (prev.shownTab !== this.props.shownTab && this.props.shownTab) this.setState({ mode: this.props.shownTab }); }
+
+  async componentDidMount() {
+    COS3.api.defaultConfig().then((cfg) => {
+      this.draft = cfg.error ? null : this.makeDraft(cfg);
+      this.setState({ cfg });
+    });
+    const sim = await COS3.api.status();
+    this.setState({ sim });
+    // Pick up an operation that was already in progress when the page loaded
+    if (COS3.api.isBusy(sim.state)) COS3.api.watch((s) => this.onStatus(s));
+  }
+
+  onStatus(sim) {
+    if (sim.state === 'running' && this.state.launching) {
+      window.location.href = COS3.api.COSMOS_URL;
+      return;
+    }
+    this.setState({ sim, launching: this.state.launching && COS3.api.isBusy(sim.state) });
+  }
+
+  async launchClick() {
+    const sim = this.state.sim || {};
+    if (sim.state === 'running') {
+      window.location.href = COS3.api.COSMOS_URL;
+      return;
+    }
+    const values = this.state.mode === 'custom' ? this.draftValues() : null;
+    this.setState({ launching: true, sim: Object.assign({}, sim, { state: 'starting', stage: 'Starting…', error: null }) });
+    let res = null;
+    try {
+      res = await COS3.api.launch(values);
+    } catch (e) { /* the next status poll shows the error */ }
+    if (res && res.error && res.error !== 'Busy') {
+      // Values refused by the server (e.g. invalid start time): show why, nothing was started
+      this.setState({ launching: false, sim: Object.assign({}, sim, { state: 'error', stage: '', error: res.error }) });
+      return;
+    }
+    COS3.api.watch((s) => this.onStatus(s));
+  }
+
+  // Custom configuration being edited. Kept in this.draft (not state) so typing in a field
+  // doesn't redraw the page; checkboxes and Reset call forceUpdate().
+  // A scenario's own defaults (orbit file, markers), from GET /api/config/default
+  scenarioInfo(key) {
+    const cfg = this.state.cfg;
+    return ((cfg && cfg.scenarios) || []).find((s) => s.key === key) || { key, label: key, orbit: null, groundStations: 0 };
+  }
+
+  // A scenario's 42 ground stations, as editable draft rows
+  stationsFor(cfg, key) {
+    const scn = ((cfg && cfg.scenarios) || []).find((s) => s.key === key);
+    const list = scn && scn.stations ? scn.stations : (cfg && cfg.groundStations) || [];
+    return list.map((g) => ({ name: g.name, world: g.world, lat: g.lat, lon: g.lon, on: true, custom: false }));
+  }
+
+  makeDraft(cfg) {
+    const sc = cfg.spacecraft[0] || { components: [] };
+    return {
+      scenario: cfg.mission.scenario,
+      stations: this.stationsFor(cfg, cfg.mission.scenario),
+      startUtc: cfg.mission.startTimeUtc,
+      hours: cfg.mission.durationS != null ? +(cfg.mission.durationS / 3600).toFixed(4) : 168,
+      components: Object.fromEntries(sc.components.map((c) => [c.key, c.enabled])),
+      names: Object.fromEntries(sc.components.map((c) => [c.key, c.name])),
+      periapsisKm: cfg.orbit ? cfg.orbit.periapsisKm : 400,
+      apoapsisKm: cfg.orbit ? cfg.orbit.apoapsisKm : 400,
+      inclinationDeg: cfg.orbit ? cfg.orbit.inclinationDeg : 52,
+      tipoff: (sc.tipoffDegS || [0, 0, 0]).slice(),
+      graphics42: sc.graphics42 !== false
+    };
+  }
+
+  draftValues() {
+    const d = this.draft;
+    return {
+      startUtc: String(d.startUtc).trim(),
+      durationS: Number(d.hours) * 3600,
+      components: d.components,
+      scenario: d.scenario,
+      // Orbit values only for scenarios with an editable (two-body) orbit
+      orbit: this.orbitEditable() ? { periapsisKm: d.periapsisKm, apoapsisKm: d.apoapsisKm, inclinationDeg: d.inclinationDeg } : null,
+      tipoffDegS: d.tipoff,
+      graphics42: d.graphics42,
+      groundStations: d.stations.filter((g) => g.on).map((g) => ({ name: String(g.name).trim(), world: g.world, lat: g.lat, lon: g.lon }))
+    };
+  }
+
+  orbitEditable() {
+    const o = this.scenarioInfo(this.draft.scenario).orbit;
+    return !!(o && o.editable);
+  }
+
+  // Changing scenario resets the orbit fields to that scenario's own orbit
+  setScenario(key) {
+    const d = this.draft;
+    const o = this.scenarioInfo(key).orbit;
+    d.scenario = key;
+    d.stations = this.stationsFor(this.state.cfg, key);
+    if (o && o.editable) Object.assign(d, { periapsisKm: o.periapsisKm, apoapsisKm: o.apoapsisKm, inclinationDeg: o.inclinationDeg });
+    this.forceUpdate();
+  }
+
+  draftVals() {
+    const d = this.draft;
+    if (!d) return { comps: [] };
+    const comps = Object.keys(d.components).map((key) => ({
+      key, name: d.names[key], on: d.components[key],
+      toggle: (e) => { d.components[key] = e.target.checked; this.forceUpdate(); }
+    }));
+    // Text fields: store the typed value without redrawing (keeps the focus)
+    const field = (name) => (e) => { d[name] = e.target.value; };
+    const tip = (i) => (e) => { d.tipoff[i] = e.target.value; };
+    const cfg = this.state.cfg;
+    const info = this.scenarioInfo(d.scenario);
+    const deg = (v, pos, neg) => Math.abs(Number(v)).toFixed(1) + '° ' + (Number(v) >= 0 ? pos : neg);
+    return {
+      comps, draftStart: d.startUtc, draftHours: d.hours,
+      draftPeri: d.periapsisKm, draftApo: d.apoapsisKm, draftInc: d.inclinationDeg,
+      draftTx: d.tipoff[0], draftTy: d.tipoff[1], draftTz: d.tipoff[2], draftG42: d.graphics42,
+      // If the server is older than this page (no scenario list), show at least the current scenario
+      scenarioOpts: (cfg && cfg.scenarios && cfg.scenarios.length
+        ? cfg.scenarios
+        : [{ key: d.scenario, label: 'restart ui_server.py to choose another scenario' }]
+      ).map((s) => ({ key: s.key, label: s.label, sel: s.key === d.scenario })),
+      setScenario: (e) => this.setScenario(e.target.value),
+      orbitEditable: this.orbitEditable(),
+      orbitFixed: !this.orbitEditable(),
+      orbitDesc: this.orbitEditable() ? info.orbit.description + ' (' + info.orbit.center + ')' : info.label,
+      orbitFile: info.orbit ? info.orbit.file : '',
+      scnStations: info.groundStations,
+      tipoffDisabled: d.scenario !== 'STF1',
+      setStart: field('startUtc'), setHours: field('hours'),
+      setPeri: field('periapsisKm'), setApo: field('apoapsisKm'), setInc: field('inclinationDeg'),
+      setTx: tip(0), setTy: tip(1), setTz: tip(2),
+      setG42: (e) => { d.graphics42 = e.target.checked; },
+      stationRows: d.stations.map((g, i) => ({
+        name: g.name, lat: g.lat, lon: g.lon, on: g.on,
+        fixed: !g.custom, custom: g.custom, earth: g.world === 'Earth', luna: g.world === 'Luna',
+        pos: (g.world !== 'Earth' ? 'Moon · ' : '') + deg(g.lat, 'N', 'S') + ', ' + deg(g.lon, 'E', 'W'),
+        toggle: (e) => { g.on = e.target.checked; },
+        setName: (e) => { g.name = e.target.value; },
+        setWorld: (e) => { g.world = e.target.value; },
+        setLat: (e) => { g.lat = e.target.value; },
+        setLon: (e) => { g.lon = e.target.value; },
+        remove: () => { d.stations.splice(i, 1); this.forceUpdate(); }
+      })),
+      addStation: () => {
+        d.stations.push({ name: 'New station', world: 'Earth', lat: 0, lon: 0, on: true, custom: true });
+        this.forceUpdate();
+        // Show the new row (the list scrolls)
+        const list = document.getElementById('gs-list');
+        if (list) list.scrollTop = list.scrollHeight;
+      },
+      resetDraft: () => { this.draft = this.makeDraft(this.state.cfg); this.forceUpdate(); }
+    };
+  }
+
+  async stopClick() {
+    if (!confirm('Stop the simulation?')) return;
+    this.setState({ launching: false, sim: Object.assign({}, this.state.sim, { state: 'stopping', stage: 'Stopping…', error: null }) });
+    try {
+      await COS3.api.stop();
+    } catch (e) { /* the next status poll shows the error */ }
+    COS3.api.watch((s) => this.onStatus(s));
+  }
+
+  // Launch button label, enabled state and the message under it
+  simVals(mode) {
+    const sim = this.state.sim;
+    const state = sim ? sim.state : 'loading';
+    const busy = COS3.api.isBusy(state);
+    let launch = '▶ Launch simulation';
+    const launchable = mode === 'default' || (mode === 'custom' && !!this.draft);
+    if (!launchable) launch = mode === 'custom' ? '▶ Launch simulation' : 'Coming soon';
+    else if (state === 'starting') launch = 'Launching…';
+    else if (state === 'stopping') launch = 'Stopping…';
+    else if (state === 'running') launch = 'Open COSMOS ↗';
+    else if (state === 'error') launch = '▶ Retry launch';
+
+    let simMsg = '';
+    if (!launchable) simMsg = mode === 'custom' ? '' : 'Only the default and custom configurations can be launched for now.';
+    else if (busy) simMsg = sim.stage || '';
+    else if (state === 'error') simMsg = sim.error || 'Something went wrong.';
+    else if (state === 'running') simMsg = 'Simulation is running.';
+
+    const containerUp = !!(sim && sim.containerRunning);
+    return {
+      launch, simMsg,
+      launchDisabled: !launchable || state === 'loading' || busy,
+      launchClick: () => this.launchClick(),
+      showStop: containerUp || state === 'stopping',
+      stopDisabled: busy,
+      stopClick: () => this.stopClick(),
+      showDesktop: containerUp,
+      desktopUrl: COS3.api.DESKTOP_URL
+    };
+  }
+
+  // Values for the Default configuration panel (from GET /api/config/default)
+  defaultVals() {
+    const cfg = this.state.cfg;
+    if (!cfg) return { cfgLoading: true };
+    if (cfg.error) return { cfgError: cfg.error };
+
+    const m = cfg.mission;
+    const sc = cfg.spacecraft[0] || { components: [] };
+    const o = cfg.orbit;
+    const deg = (v, pos, neg) => Math.abs(v).toFixed(1) + '° ' + (v >= 0 ? pos : neg);
+    const on = sc.components.filter((c) => c.enabled).map((c) => c.name);
+    const off = sc.components.filter((c) => !c.enabled).map((c) => c.name);
+    const satRows = [
+      { l: 'Satellites', v: cfg.spacecraft.map((s) => s.name).join(', ') || '—' },
+      { l: 'Configuration', v: sc.config || '—' }
+    ];
+    if (o) {
+      satRows.push({ l: 'Orbit', v: o.description + ' (' + o.center + ')' });
+      if (o.periapsisKm != null) satRows.push({ l: 'Altitude', v: o.periapsisKm === o.apoapsisKm ? o.periapsisKm + ' km' : o.periapsisKm + ' × ' + o.apoapsisKm + ' km' });
+      if (o.inclinationDeg != null) satRows.push({ l: 'Inclination', v: o.inclinationDeg + '°' });
+    }
+    satRows.push({ l: '42 graphics', v: sc.graphics42 ? 'On' : 'Off' });
+
+    return {
+      cfgReady: true,
+      cfgFile: cfg.file,
+      satFile: sc.config,
+      simFile: cfg.simFile,
+      missionRows: [
+        { l: 'Start (UTC)', v: m.startTimeUtc },
+        { l: 'Duration', v: m.duration || '—' },
+        { l: 'Scenario', v: m.scenario },
+        { l: 'Flight software', v: m.fswLabel },
+        { l: 'Ground software', v: m.gswLabel }
+      ],
+      satRows,
+      compsOn: on,
+      compsOff: off.join(', '),
+      compCount: on.length + ' enabled',
+      stations: cfg.groundStations.map((g) => ({ name: g.name, pos: (g.world !== 'Earth' ? g.world + ' · ' : '') + deg(g.lat, 'N', 'S') + ', ' + deg(g.lon, 'E', 'W') })),
+      staCount: cfg.groundStations.length,
+      gswLabel: m.gswLabel
+    };
+  }
+
+  renderVals() {
+    const st = this.state;
+    const set = (o) => () => this.setState(o);
+    const modeList = [['default', 'Default configuration'], ['saved', 'Saved configuration'], ['custom', 'New custom configuration'], ['replay', 'Replay a recorded session']];
+    const modes = modeList.map(([k, label]) => ({ label, cls: st.mode === k ? 'on' : '', pick: set({ mode: k }) }));
+    const savedList = [
+      ['Configuration1', '2', 'None', '[USER]'],
+      ['Configuration2', '1', 'Reaction wheel failure', '[USER]'],
+      ['Configuration3', '1', 'None', '[OTHER USER]']
+    ];
+    const saved = savedList.map(([name, sats, fault, owner], i) => ({ name, sats, fault, owner, cls: st.saved === i ? 'on' : '', pick: set({ saved: i }) }));
+    const recList = [['Configuration1', '[USER]'], ['Configuration2', '[USER]'], ['Configuration3', '[OTHER USER]']];
+    const rec = recList.map(([cfg, owner], i) => ({ cfg, owner, cls: st.rec === i ? 'on' : '', pick: set({ rec: i }) }));
+    const cfg = st.cfg && !st.cfg.error ? st.cfg : null;
+    const files = { default: cfg ? cfg.file : 'nos3-mission.xml', saved: savedList[st.saved][0], custom: 'Custom (not saved)', replay: recList[st.rec][0] + ' (recording)' };
+    const nSats = { default: cfg ? String(cfg.spacecraft.length) : '—', saved: savedList[st.saved][1], custom: '1', replay: '[N]' }[st.mode];
+    // NOS3 has one ground link per mission: the ground software (COSMOS), always connected through the radio sim
+    const nSta = cfg ? cfg.mission.gswLabel : '—';
+    return Object.assign({
+      yes: true, modes, saved, rec,
+      mDef: st.mode === 'default', mSaved: st.mode === 'saved', mCustom: st.mode === 'custom', mReplay: st.mode === 'replay',
+      file: files[st.mode], nSats, nSta,
+      toCustom: set({ mode: 'custom' })
+    }, this.simVals(st.mode), this.defaultVals(), this.draftVals());
+  }
+}
+
+COS3.mount(Component, {"shownTab": "default"});
+</script>
+</body>
+</html>

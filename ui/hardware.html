@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>COS3 – Hardware (HIL)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* Styles used only on this page */
+input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px solid #999;border-radius:4px;padding:0 10px;box-sizing:border-box;background:#fff;color:#222;width:100%}
+.fld{display:flex;flex-direction:column;gap:5px}
+.pnl{background:#fff;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #E2E2E2}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Page markup. {{name}} values come from renderVals() in the script below.
+     Header and sidebar are shared: see assets/layout.js. -->
+<template id="page">
+<div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
+<div data-cos3="header" data-status="running"></div>
+<div style="flex:1;display:flex;min-height:0">
+<div data-cos3="nav" data-active="hardware"></div>
+<main style="flex:1;min-width:0;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+<div class="row" style="gap:12px">
+<h1 style="margin:0;font-size:22px">Hardware-in-the-Loop</h1>
+<div style="flex:1"></div>
+<span style="font-size:12px;color:#555">Photodiode input</span>
+<div role="group" aria-label="Photodiode input" style="display:flex">
+<button class="btn sm {{hwCls}}" onClick="{{toHw}}" style="border-radius:4px 0 0 4px">Hardware</button>
+<button class="btn sm {{simCls}}" onClick="{{toSim}}" style="border-radius:0 4px 4px 0;border-left:0">Simulated</button>
+</div>
+<span class="tag">◆ NOS3 hardware interface</span>
+</div>
+
+<section class="pnl">
+<div class="row"><span style="font-weight:600;font-size:15px;flex:1">ESP32 · photodiode cube</span><span class="dot off"></span><span style="font-weight:700;font-size:13px">[CONNECTION STATUS]</span></div>
+
+</section>
+
+<section class="pnl" style="flex:1">
+<div class="row"><span class="h" style="flex:1">Photodiodes · one per cube face</span><span style="font-size:12px;color:#555">Click a photodiode to select it for fault injection</span></div>
+<div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:16px">
+<template data-for="{{chans}}" data-as="c">
+<button class="ch {{c.cls}}" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="justify-content:center;gap:10px;padding:20px">
+<span style="font-weight:700;font-size:18px">{{c.face}}</span>
+<span class="mono" style="font-size:22px;font-weight:600">[value]</span>
+<span class="vs" style="align-self:flex-start">[STATUS]</span>
+</button>
+</template>
+</div>
+
+</section>
+
+<section class="pnl">
+<div class="row"><span class="h">Fault injection</span><span class="mono" style="font-size:13px;font-weight:600;margin-left:12px">Selected: {{selList}}</span><div style="flex:1"></div><button class="btn">Clear faults</button><button class="btn primary">Inject fault on selected</button></div>
+</section>
+</main>
+</div>
+</div>
+</template>
+
+<script src="assets/cos3-runtime.js"></script>
+<script src="assets/layout.js"></script>
+<script>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { src: 'hw', sel: { '+Z': true } }; }
+  renderVals() {
+    const sel = this.state.sel;
+    const list = ['+X', '−X', '+Y', '−Y', '+Z', '−Z'];
+    const chans = list.map((face) => ({
+      face, cls: sel[face] ? 'on' : '', pressed: sel[face] ? 'true' : 'false',
+      pick: () => this.setState({ sel: Object.assign({}, sel, { [face]: !sel[face] }) })
+    }));
+    const picked = list.filter((f) => sel[f]);
+    const hw = this.state.src === 'hw';
+    return {
+      yes: true, chans, selList: picked.length ? picked.join(', ') : 'None',
+      hwCls: hw ? 'on' : '', simCls: hw ? '' : 'on',
+      toHw: () => this.setState({ src: 'hw' }), toSim: () => this.setState({ src: 'sim' })
+    };
+  }
+}
+
+COS3.mount(Component, {});
+</script>
+</body>
+</html>

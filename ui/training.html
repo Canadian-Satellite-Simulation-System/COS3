@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>COS3 – Training Scenarios</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* Styles used only on this page */
+input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px solid #999;border-radius:4px;padding:0 10px;box-sizing:border-box;background:#fff;color:#222;width:100%}
+.fld{display:flex;flex-direction:column;gap:5px}
+.pnl{background:#fff;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Page markup. {{name}} values come from renderVals() in the script below.
+     Header and sidebar are shared: see assets/layout.js. -->
+<template id="page">
+<div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
+<div data-cos3="header" data-status="running"></div>
+<div style="flex:1;display:flex;min-height:0">
+<div data-cos3="nav" data-active="training"></div>
+<main style="flex:1;min-width:0;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+<div class="row" style="gap:12px"><h1 style="margin:0;font-size:22px">Training Scenarios</h1><div style="flex:1"></div></div>
+
+<div style="flex:1;min-height:0;display:flex;gap:16px">
+<section class="pnl" style="width:380px;flex:none">
+<span class="h">Scenarios</span>
+<template data-for="{{scen}}" data-as="s">
+<div style="border:{{s.border}};border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:8px">
+<span style="font-weight:600;font-size:14px">{{s.name}}</span>
+<span style="font-size:12px;color:#555">{{s.desc}}</span>
+<div class="row"><span class="chip" style="border-style:dashed">{{s.lvl}}</span><div style="flex:1"></div><button class="btn sm" onClick="{{s.load}}">Load</button><button class="btn sm primary" onClick="{{s.load}}">▶ Run</button></div>
+</div>
+</template>
+<div class="slot" style="height:64px" aria-label="Placeholder for a future scenario"></div>
+</section>
+
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
+<section class="pnl" style="width: 776px; height: 148px">
+<div class="row"><div style="display:flex;flex-direction:column;flex:1"><span class="h" style="font-size:11px">Loaded</span><span style="font-size:17px;font-weight:600">{{cur}}</span></div><span class="mono" style="font-size:13px">T+ [mm:ss]</span></div>
+<span class="h">Timeline</span>
+
+</section>
+
+<section class="pnl" style="flex:1">
+<div class="row"><span class="h" style="flex:1">Fault injection</span><span class="tag">◆ NOS3 component sims (NOS Engine)</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end">
+<div class="fld"><label for="fc">Component</label><select id="fc"><option>Reaction wheel</option><option>Magnetorquer</option><option>Fine sun sensors</option><option>Photodiode</option></select></div>
+<div class="fld"><label for="ft">Fault type</label><select id="ft"><option>Stuck value</option><option>No response</option><option>Noise</option><option>Bias</option></select></div>
+<button class="btn primary">Inject fault</button>
+</div>
+<div style="height:1px;background:#DDD"></div>
+<div class="row"><span class="h" style="flex:1">Active faults</span><button class="btn sm">Clear all</button></div>
+<div class="row" style="border:1px solid #CCC;border-radius:4px;padding:8px 12px"><span style="font-weight:600;font-size:13px;flex:1">Reaction wheel · Stuck value</span><span class="mono" style="font-size:12px;color:#555">since T+ [mm:ss]</span></div>
+<div style="flex:1"></div>
+
+</section>
+</div>
+</div>
+</main>
+</div>
+</div>
+</template>
+
+<script src="assets/cos3-runtime.js"></script>
+<script src="assets/layout.js"></script>
+<script>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { cur: 'Reaction wheel failure' }; }
+  renderVals() {
+    const list = [
+      ['Reaction wheel failure', 'A wheel stops responding; recover attitude control.', 'INTERMEDIATE'],
+      ['Low power / safe mode', 'Battery drops in eclipse; manage safe mode.', 'ADVANCED']
+    ];
+    const scen = list.map(([name, desc, lvl]) => ({ name, desc, lvl, border: name === this.state.cur ? '2.5px solid #222' : '1px solid #BBB', load: () => this.setState({ cur: name }) }));
+    const marks = [
+      { x: '3%', t: 'T+00:00', label: 'Start', shape: '' },
+      { x: '25%', t: 'T+05:00', label: 'Fault injected', shape: 'transform:rotate(45deg);' },
+      { x: '60%', t: 'T+12:00', label: 'Expected operator action', shape: 'border-radius:50%;' },
+      { x: '96%', t: 'T+25:00', label: 'End', shape: '' }
+    ];
+    return { yes: true, scen, marks, cur: this.state.cur };
+  }
+}
+
+COS3.mount(Component, {});
+</script>
+</body>
+</html>

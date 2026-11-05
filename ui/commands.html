@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>COS3 – Commands</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* Styles used only on this page */
+th{text-align:left;font-weight:600;color:#444;border-bottom:1.5px solid #999;padding:7px 12px;background:#F4F4F4}
+td{border-bottom:1px solid #DDD;padding:6px 12px}
+input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px solid #999;border-radius:4px;padding:0 10px;box-sizing:border-box;background:#fff;color:#222;width:100%}
+.fld{display:flex;flex-direction:column;gap:5px}
+.pnl{background:#fff;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.pk{display:flex;align-items:center;gap:6px;height:34px;padding:0 10px;border-radius:4px;font-size:13px;background:none;border:0;width:100%;text-align:left;cursor:pointer;font-family:'IBM Plex Mono',monospace;color:#222}
+.pk.on{background:#222;color:#fff}
+.st{font:600 11px 'IBM Plex Mono',monospace;border:1.5px solid #222;padding:1px 6px;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Page markup. {{name}} values come from renderVals() in the script below.
+     Header and sidebar are shared: see assets/layout.js. -->
+<template id="page">
+<div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
+<div data-cos3="header" data-status="running"></div>
+<div style="flex:1;display:flex;min-height:0">
+<div data-cos3="nav" data-active="commands"></div>
+<main style="flex:1;min-width:0;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+<div class="row" style="gap:12px"><h1 style="margin:0;font-size:22px">Commands</h1><span style="font-size:13px;color:#555">to SAT-1</span><div style="flex:1"></div><span class="tag">◆ Ground software → flight software</span></div>
+
+<div style="flex:1;min-height:0;display:flex;gap:16px">
+<section class="pnl" style="width:250px;flex:none">
+<div role="group" aria-label="Command level" style="display:flex">
+<button class="btn sm {{cCls}}" onClick="{{toC}}" style="flex:1;border-radius:4px 0 0 4px">Component</button>
+<button class="btn sm {{hCls}}" onClick="{{toH}}" style="flex:1;border-radius:0 4px 4px 0;border-left:0">High-level</button>
+</div>
+<template data-if="{{isC}}"><select aria-label="Component"><option>Reaction wheels</option><option>Magnetorquers</option><option>Fine sun sensor</option><option>GPS receiver</option><option>Radio</option></select></template>
+<input type="search" placeholder="Search…" aria-label="Search commands">
+<div style="display:flex;flex-direction:column;gap:2px">
+<template data-for="{{cmds}}" data-as="c">
+<button class="pk {{c.cls}}" onClick="{{c.pick}}"><span style="flex:1">{{c.name}}</span><template data-if="{{c.prot}}"><span class="prot" style="width: 33px; height: 8px"><br></span></template></button>
+</template>
+</div>
+<div style="flex:1"></div>
+
+</section>
+
+<section class="pnl" style="flex:1;min-width:0">
+<div class="row"><span class="mono" style="font-size:17px;font-weight:600;flex:1">{{title}}</span><span class="tag">◆ Flight software command definitions</span></div>
+<template data-if="{{isC}}">
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+<div class="fld"><label for="p1">Wheel ID</label><select id="p1"><option>1</option><option>2</option><option>3</option></select></div>
+<div class="fld"><label for="p2">Speed (rpm)</label><input id="p2" placeholder="[—]"></div>
+</div>
+</template>
+<template data-if="{{isH}}">
+<div class="box" style="padding:12px 14px;background:#FAFAFA;display:flex;flex-direction:column;gap:6px">
+<span class="h" style="font-size:11px">Expands to component commands</span>
+<span class="mono" style="font-size:12px;line-height:1.7">1. RW SET_MODE [mode]<br>2. TORQUER ENABLE<br>3. [component command]</span>
+</div>
+</template>
+<div class="fld"><span style="font-size:12px;font-weight:600;color:#444">Execute</span>
+<div class="row" style="gap:20px"><label class="opt"><input type="radio" name="ex" checked="checked">Now</label><label class="opt"><input type="radio" name="ex">At time (UTC)</label><input aria-label="Execution time" placeholder="YYYY-MM-DD hh:mm:ss" style="width:200px"></div></div>
+<div style="flex:1"></div>
+<div class="row"><div style="flex:1"></div><button class="btn primary" style="height:44px;padding:0 32px;font-size:14px">Send ▸</button></div>
+</section>
+
+<section class="pnl" style="width:360px;flex:none">
+<div class="row"><span class="h" style="flex:1">Procedures</span><span class="tag">◆ Ground software</span></div>
+<select aria-label="Procedure"><option>[Procedure name]</option><option>Pass checkout</option><option>Detumble</option></select>
+<div class="box mono" style="flex:1;padding:10px 12px;font-size:12px;line-height:1.8;background:#FAFAFA;color:#444">STEPS<br><br></div>
+<div class="row"><button class="btn primary" style="flex:1">Run</button><button class="btn" style="flex:1">&nbsp;Stop</button></div>
+</section>
+</div>
+
+<section class="box" style="height:240px;flex:none;overflow:hidden;display:flex;flex-direction:column">
+<div class="row" style="padding:12px 16px 4px"><span class="h" style="flex:1">History</span><span class="tag">◆ Flight software counters</span></div>
+<table>
+<thead><tr><th>Sent (UTC)</th><th>Execute at</th><th>Command</th><th>Parameters</th><th>Status</th></tr></thead>
+<tbody>
+<template data-for="{{hist}}" data-as="h">
+<tr><td class="mono">[hh:mm:ss]</td><td class="mono" style="color:#555">{{h.at}}</td><td class="mono">{{h.c}}</td><td class="mono" style="color:#555">{{h.p}}</td><td><span class="st" style="{{h.ss}}">{{h.s}}</span></td></tr>
+</template>
+</tbody>
+</table>
+</section>
+</main>
+</div>
+</div>
+</template>
+
+<script src="assets/cos3-runtime.js"></script>
+<script src="assets/layout.js"></script>
+<script>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { lvl: 'c', sel: 'SET_SPEED' }; }
+  renderVals() {
+    const isC = this.state.lvl === 'c';
+    const list = isC
+      ? [['NOOP', false], ['RESET_COUNTERS', false], ['ENABLE', false], ['DISABLE', true], ['SET_SPEED', false], ['SET_MODE', false]]
+      : [['DETUMBLE', false], ['POINT_TO_SUN', false], ['ENTER_SAFE_MODE', true], ['START_DOWNLINK', false]];
+    const sel = list.some(([n]) => n === this.state.sel) ? this.state.sel : list[0][0];
+    const cmds = list.map(([n, prot]) => ({ name: n, prot, cls: n === sel ? 'on' : '', pick: () => this.setState({ sel: n }) }));
+    const hist = [
+      { at: 'Now', c: 'RW SET_SPEED', p: 'WHEEL 2, [—] rpm', s: 'EXECUTED', ss: 'background:#222;color:#fff;' },
+      { at: '[hh:mm:ss]', c: 'POINT_TO_SUN', p: '—', s: 'ACCEPTED', ss: '' },
+      { at: 'Now', c: 'ST SET_MODE', p: 'MODE [—]', s: 'REJECTED', ss: 'border-style:dashed;' },
+      { at: 'Now', c: 'GPS NOOP', p: '—', s: 'EXECUTED', ss: 'background:#222;color:#fff;' }
+    ];
+    return {
+      yes: true, cmds, hist, isC, isH: !isC,
+      title: (isC ? 'RW · ' : '') + sel,
+      cCls: isC ? 'on' : '', hCls: isC ? '' : 'on',
+      toC: () => this.setState({ lvl: 'c' }), toH: () => this.setState({ lvl: 'h' })
+    };
+  }
+}
+
+COS3.mount(Component, {});
+</script>
+</body>
+</html>

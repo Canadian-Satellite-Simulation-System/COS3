@@ -45,7 +45,27 @@ git push
 
 Forgetting the last three commands is the most common mistake: the backend is pushed, but COS3 still points at the old commit, so teammates don't receive the change.
 
-## Run the simulation
+## Run the UI
+
+The COS3 UI (the wireframe pages in `ui/`) is served by `ui_server.py`. Run it from the Ubuntu (WSL) terminal, with Docker Desktop running:
+
+```bash
+python3 ui_server.py
+```
+
+Open http://localhost:3001. On the Setup Wizard, the **Default configuration** tab has a working **Launch simulation** button:
+
+- It starts the `nos3-desktop` container, runs any missing setup (`make config`, `make prep`, `make`), then `make launch`, and opens COSMOS at http://localhost:2900 once it responds. The logic is in `launcher.py`.
+- NOS3's terminal tabs and the 42 window open on the container's virtual desktop, not on your screen. To see them, use the **View NOS3 desktop** link (http://localhost:6080/vnc.html).
+- **Stop simulation** runs `make stop` and stops the container.
+
+Notes:
+
+- Stop any NOS3 you started by hand first (`make stop`), otherwise ports 2900 and 6080 are already taken.
+- Don't run `server.py` at the same time: both would control the same container. `server.py` is the first prototype and will be removed.
+- The first launch builds NOS3 inside the container and can take a long time.
+
+## Run the simulation (first prototype)
 
 Start the launcher (needs Python 3 and Docker Desktop):
 
