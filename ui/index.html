@@ -126,7 +126,6 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 </section>
 <section class="pnl">
 <div class="row"><span class="h" style="flex:1">Ground stations</span><span class="tag">◆ 42 · display only</span></div>
-<span style="font-size:12px;color:#555">Shown as markers in the 42 window. The ground link is {{gswLabel}} through the radio sim, always connected.</span>
 <div id="gs-list" style="max-height:124px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column">
 <template data-for="{{stationRows}}" data-as="g">
 <div class="gs">
@@ -230,7 +229,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    // sim: last status from the server (null until loaded); launching: redirect to COSMOS once running
+    // sim: last status from the server (null until loaded); launching: a launch from this page is in progress
     // cfg: default NOS3 configuration from the server (null until loaded)
     this.state = { mode: props.shownTab || 'default', saved: 0, rec: 0, sim: null, launching: false, cfg: null };
   }
@@ -248,8 +247,9 @@ class Component extends DCLogic {
   }
 
   onStatus(sim) {
-    if (sim.state === 'running' && this.state.launching) {
-      window.location.href = COS3.api.COSMOS_URL;
+    // Once running, the simulation pages replace the wizard (see layout.js)
+    if (sim.state === 'running') {
+      window.location.replace('dashboard.html');
       return;
     }
     this.setState({ sim, launching: this.state.launching && COS3.api.isBusy(sim.state) });

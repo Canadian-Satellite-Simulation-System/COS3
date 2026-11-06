@@ -113,9 +113,12 @@ def validate(values):
 
 
 def _validate_stations(stations):
-    """42 ground stations: display markers in the 42 window (no effect on the COSMOS link)."""
-    if not isinstance(stations, list) or len(stations) > MAX_GROUND_STATIONS:
-        raise ValueError(f"Ground stations: up to {MAX_GROUND_STATIONS}.")
+    """42 ground stations: markers in the 42 window, and the first one (#0) is the ground
+    end of both 42 comm links (Inp_CommLink.txt), computed every step and sent to the radio
+    sim. The radio sim ignores them while its close-criteria are "none" (nos3-simulator.xml).
+    At least one is required: 42 reads station #0 even when the list is empty."""
+    if not isinstance(stations, list) or not 1 <= len(stations) <= MAX_GROUND_STATIONS:
+        raise ValueError(f"Ground stations: 1 to {MAX_GROUND_STATIONS}.")
     clean = []
     for st in stations:
         if not isinstance(st, dict):
