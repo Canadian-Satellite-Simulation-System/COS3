@@ -4,6 +4,7 @@
  *
  *   COS3.api.status()         -> { state, stage, error, containerRunning }
  *   COS3.api.defaultConfig()  -> default NOS3 configuration (see default_config.py), or { error }
+ *   COS3.api.components()     -> components enabled in the current simulation (see current_config.py), or { error }
  *   COS3.api.launch(values) / stop() -> start the operation (then call watch)
  *   COS3.api.watch(onUpdate)  -> polls while starting/stopping, calls onUpdate(status) each time
  *
@@ -54,6 +55,8 @@
     watch,
     // Default NOS3 configuration; resolves to { error } if it can't be read
     defaultConfig: () => api('GET', '/api/config/default').catch(() => ({ error: "Can't reach the UI server." })),
+    // Components enabled in the current simulation: { spacecraft: [{ name, config, components: [{ key, name }] }] }
+    components: () => api('GET', '/api/components').catch(() => ({ error: "Can't reach the UI server." })),
     // values: null for the default configuration, or { startUtc, durationS, components }.
     // Resolves to { error } if the server refuses the values.
     launch: (values) => api('POST', '/api/launch', values ? { values } : undefined),

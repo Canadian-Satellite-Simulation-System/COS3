@@ -7,6 +7,7 @@ PORT = 3000
 ALLOWED_HOSTS = [f"localhost:{PORT}", f"127.0.0.1:{PORT}"]
 
 COSMOS_URL = "http://localhost:2900"
+COSMOS_API_URL = COSMOS_URL + "/openc3-api/api"
 COSMOS_TIMEOUT_S = 5 * 60
 COSMOS_POLL_S = 3
 COSMOS_REQUEST_TIMEOUT_S = 2
@@ -30,3 +31,9 @@ STATIC_FILES = {
     "/index.html": ("index.html", "text/html"),
     "/main.js": ("main.js", "text/javascript"),
 }
+
+# API
+HEADERS = {"Content-Type": "application/json"}
+POST = "POST"
+GET = "GET"
+TIMEOUT_S = 5

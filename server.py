@@ -7,18 +7,24 @@ Usage (in the Ubuntu terminal, with Docker Desktop running):
 API (requires the `X-COS3: 1` header):
     GET  /api/status          current simulation state
     GET  /api/config/default  default NOS3 configuration (read from backend/cfg)
+    GET  /api/components      components enabled in the current simulation
     POST /api/launch   start the container and NOS3: default configuration, or a custom one
                        with body {"values": {"startUtc", "durationS", "components"}}
     POST /api/stop     stop NOS3 and the container
+    POST /api/login    body {"password"}: log in to COSMOS
+    POST /api/noop     body {"path": "DEBUG" | "RADIO"}: send GENERIC_MAG_NOOP_CC
 """
 
 import json
+import urllib.error
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import custom_config
+from cosmos_client import CosmosJSONAPIClient
+from current_config import load_enabled_components
 from default_config import ConfigError, load_default_config
 from launcher import launcher
 
@@ -30,6 +36,8 @@ PORT = 3000
 ALLOWED_HOSTS = [f"localhost:{PORT}", f"127.0.0.1:{PORT}"]
 
 MAX_BODY_BYTES = 64 * 1024
+
+cosmos = CosmosJSONAPIClient()
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -60,6 +68,11 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json(200, load_default_config())
             except ConfigError as err:
                 self._send_json(500, {"error": str(err)})
+        elif path == "/api/components":
+            try:
+                self._send_json(200, load_enabled_components())
+            except ConfigError as err:
+                self._send_json(500, {"error": str(err)})
         else:
             self._send_json(404, {"error": "Not found"})
 
@@ -71,6 +84,11 @@ class Handler(SimpleHTTPRequestHandler):
         if not self._allowed() or not self._api_allowed():
             return
         path = urlsplit(self.path).path
+
+        if path == "/api/login":
+            return self._login()
+        if path == "/api/noop":
+            return self._send_noop()
 
         if path == "/api/launch":
             # Optional body {"values": {...}} for a custom configuration; no body = default
@@ -89,6 +107,22 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(202, {"state": launcher.state})
         else:
             self._send_json(409, {"error": "Busy"})
+
+    def _login(self):
+        """Check the password with COSMOS via CosmosJSONAPIClient.authenticate."""
+        try:
+            password = self._read_json().get("password", "")
+        except ValueError as err:
+            return self._send_json(400, {"error": str(err)})
+
+        try:
+            cosmos.authenticate(password)
+        except urllib.error.HTTPError as err:
+            message = "Wrong password." if err.code == 401 else f"COSMOS returned HTTP {err.code}."
+            return self._send_json(401, {"error": message})
+        except OSError:
+            return self._send_json(502, {"error": "Can't reach COSMOS. Is it running?"})
+        self._send_json(200, {"loggedIn": True})
 
     def _read_json(self):
         """The request's JSON body as a dict ({} if there is none). Raises ValueError if invalid."""
