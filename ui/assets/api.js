@@ -10,7 +10,7 @@
  *
  * state: idle | starting | running | stopping | error
  */
-(function () {
+(function() {
   'use strict';
 
   const POLL_MS = 2000;
@@ -74,6 +74,8 @@
     // path: 'DEBUG' or 'RADIO'. Resolves to { error, status } on failure (status 401 = log in to COSMOS).
     commands: (componentKey, path) =>
       apiWithStatus('GET', `/api/components/${encodeURIComponent(componentKey)}/commands?path=${encodeURIComponent(path)}`),
+    // Whether the server has a COSMOS session: { loggedIn }, or { error, status }
+    session: () => apiWithStatus('GET', '/api/session'),
     // Log in to COSMOS: resolves to { loggedIn: true } or { error, status }
     login: (password) => apiWithStatus('POST', '/api/login', { password }),
     // values: null for the default configuration, or { startUtc, durationS, components }.

@@ -105,21 +105,31 @@
       min-height: 0
     }
 
-    .seg {
-      display: flex
+    /* Debug/Radio switch: a segmented control built from the shared .seg buttons */
+    .path {
+      display: flex;
+      align-items: center;
+      gap: 10px
     }
 
-    .seg .btn {
-      flex: 1
+    .path-switch {
+      display: flex;
+      width: 220px;
+      border: 1.5px solid #333;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #fff
     }
 
-    .seg .btn:first-child {
-      border-radius: 4px 0 0 4px
+    .path-switch .seg {
+      height: 32px;
+      font-size: 13px;
+      border-right-color: #333
     }
 
-    .seg .btn:last-child {
-      border-radius: 0 4px 4px 0;
-      border-left: 0
+    .path-switch .seg:focus-visible {
+      outline: 2px solid #222;
+      outline-offset: -4px
     }
   </style>
 </head>
@@ -136,16 +146,54 @@
           style="flex:1;min-width:0;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
           <div class="row" style="gap:12px">
             <h1 style="margin:0;font-size:22px">Commands</h1>
+            <div style="flex:1"></div>
+            <template data-if="{{loggedIn}}">
+              <div class="path">
+                <div class="path-switch" role="group" aria-labelledby="path-label">
+                  <button class="seg {{debugCls}}" onClick="{{toDebug}}" aria-pressed="{{isDebug}}"
+                    title="Send straight to the flight software (DEBUG interface)">Debug</button>
+                  <button class="seg {{radioCls}}" onClick="{{toRadio}}" aria-pressed="{{isRadio}}"
+                    title="Send through the simulated radio (RADIO interface)">Radio</button>
+                </div>
+              </div>
+            </template>
           </div>
 
+          <template data-if="{{checkingSession}}">
+            <p class="hint">Checking COSMOS session…</p>
+          </template>
+
+          <template data-if="{{loggedOut}}">
+            <div style="flex:1;display:flex;align-items:center;justify-content:center">
+              <form class="pnl" style="width:360px" onSubmit="{{login}}" aria-label="Log in to COSMOS">
+                <div style="font-weight:600;font-size:16px">Log in to COSMOS</div>
+                <p class="hint">Sending commands needs a COSMOS session.</p>
+                <div class="fld">
+                  <label for="cosmos-password">COSMOS password</label>
+                  <input id="cosmos-password" type="password" autocomplete="current-password" required autofocus>
+                </div>
+                <template data-if="{{loginError}}">
+                  <p role="alert" class="err">{{loginError}}</p>
+                </template>
+                <button class="btn" type="submit" disabled="{{loggingIn}}">Log in</button>
+              </form>
+            </div>
+          </template>
+
+          <template data-if="{{loggedIn}}">
           <div style="flex:1;min-height:0;display:flex;gap:16px">
             <section class="pnl" style="width:250px;flex:none" aria-label="Enabled components">
-              <div style="font-weight:600">Target<span style="color:#555;font-weight:400">({{count}})</span></div>
+              <div style="font-weight:600">Components</div>
+              <input id="component-search" type="search" placeholder="Search components" aria-label="Search components"
+                value="{{compQuery}}" onInput="{{searchComps}}">
               <template data-if="{{loading}}">
                 <p style="margin:0;color:#555;font-size:13px">Loading components…</p>
               </template>
               <template data-if="{{error}}">
                 <p role="alert" style="margin:0;color:#b00020;font-size:13px">{{error}}</p>
+              </template>
+              <template data-if="{{noCompMatches}}">
+                <p class="hint">No matching components.</p>
               </template>
               <div class="lst">
                 <template data-for="{{comps}}" data-as="c">
@@ -155,26 +203,20 @@
             </section>
 
             <section class="pnl" style="width:330px;flex:none" aria-label="Commands">
-              <div style="font-weight:600">Commands <span style="color:#555;font-weight:400">({{cmdCount}})</span></div>
-              <div class="seg" role="group" aria-label="Command path">
-                <button class="btn sm {{debugCls}}" onClick="{{toDebug}}" aria-pressed="{{isDebug}}">DEBUG</button>
-                <button class="btn sm {{radioCls}}" onClick="{{toRadio}}" aria-pressed="{{isRadio}}">RADIO</button>
-              </div>
+              <div style="font-weight:600">Commands</div>
+              <input id="command-search" type="search" placeholder="Search commands" aria-label="Search commands"
+                value="{{cmdQuery}}" onInput="{{searchCmds}}" disabled="{{noComponent}}">
               <template data-if="{{noComponent}}">
                 <p class="hint">Select a component.</p>
               </template>
               <template data-if="{{cmdLoading}}">
                 <p class="hint">Loading commands…</p>
               </template>
-              <template data-if="{{needLogin}}">
-                <form class="fld" onSubmit="{{login}}">
-                  <label for="cosmos-password">COSMOS password</label>
-                  <input id="cosmos-password" type="password" autocomplete="current-password" required>
-                  <button class="btn sm" type="submit">Log in</button>
-                </form>
-              </template>
               <template data-if="{{cmdError}}">
                 <p role="alert" class="err">{{cmdError}}</p>
+              </template>
+              <template data-if="{{noCmdMatches}}">
+                <p class="hint">No matching commands.</p>
               </template>
               <div class="lst">
                 <template data-for="{{cmds}}" data-as="c">
@@ -186,6 +228,7 @@
               </div>
             </section>
           </div>
+          </template>
         </main>
       </div>
     </div>
@@ -195,17 +238,68 @@
   <script src="assets/api.js"></script>
   <script src="assets/layout.js"></script>
   <script>
+    // Case-insensitive match of a search query against any of the given fields
+    function matches(query, ...fields) {
+      const q = query.trim().toLowerCase();
+      return !q || fields.some((f) => (f || '').toLowerCase().includes(q));
+    }
+
+    // onInput handler for a search box: setState re-renders the whole page (cos3-runtime),
+    // which replaces the input, so put focus and the cursor back afterwards.
+    function searchHandler(component, stateKey) {
+      return (e) => {
+        const {id, value, selectionStart, selectionEnd} = e.target;
+        component.setState({[stateKey]: value}); // synchronous: the new input exists now
+        const input = document.getElementById(id);
+        if (input) {
+          input.focus();
+          input.setSelectionRange(selectionStart, selectionEnd);
+        }
+      };
+    }
+
     class Component extends DCLogic {
       constructor(props) {
         super(props);
         this.state = {
+          auth: 'checking', // checking | out | in
+          loginError: null, loggingIn: false,
           loading: true, error: null, spacecraft: null, sel: null,
           path: 'DEBUG',
-          cmds: null, cmdLoading: false, cmdError: null, needLogin: false, cmdSel: null
+          cmds: null, cmdLoading: false, cmdError: null, cmdSel: null,
+          compQuery: '', cmdQuery: ''
         };
+        this.searchComps = searchHandler(this, 'compQuery');
+        this.searchCmds = searchHandler(this, 'cmdQuery');
       }
 
       async componentDidMount() {
+        const res = await COS3.api.session();
+        if (res.loggedIn) {
+          this.setState({auth: 'in'});
+          this.loadComponents();
+        } else {
+          this.setState({auth: 'out', loginError: res.error || null});
+        }
+      }
+
+      // Back to the login view, e.g. when COSMOS rejects the session (expired, or COSMOS restarted)
+      logout(message) {
+        this.setState({auth: 'out', loginError: message, sel: null, cmds: null, cmdSel: null, cmdError: null});
+      }
+
+      async login(event) {
+        event.preventDefault();
+        const password = event.target.querySelector('input[type=password]').value;
+        this.setState({loggingIn: true, loginError: null});
+        const res = await COS3.api.login(password);
+        if (res.error) return this.setState({loggingIn: false, loginError: res.error});
+        this.setState({loggingIn: false, auth: 'in'});
+        this.loadComponents();
+      }
+
+      async loadComponents() {
+        this.setState({loading: true, error: null});
         const res = await COS3.api.components();
         if (res.error) {
           return this.setState({loading: false, error: res.error});
@@ -224,11 +318,15 @@
       async loadCommands() {
         const {sel, path} = this.state;
         if (!sel) return;
-        this.setState({cmds: null, cmdLoading: true, cmdError: null, needLogin: false, cmdSel: null});
+        this.setState({cmds: null, cmdLoading: true, cmdError: null, cmdSel: null});
         const res = await COS3.api.commands(sel, path);
         if (sel !== this.state.sel || path !== this.state.path) return; // selection changed while loading
+        if (res.status === 401) {
+          this.setState({cmdLoading: false});
+          return this.logout('Your COSMOS session ended. Log in again.');
+        }
         if (res.error) {
-          return this.setState({cmdLoading: false, needLogin: res.status === 401, cmdError: res.error});
+          return this.setState({cmdLoading: false, cmdError: res.error});
         }
         this.setState({
           cmdLoading: false,
@@ -237,30 +335,24 @@
         });
       }
 
-      async login(event) {
-        event.preventDefault();
-        const password = event.target.querySelector('input').value;
-        const res = await COS3.api.login(password);
-        if (res.error) return this.setState({cmdError: res.error});
-        this.loadCommands();
-      }
-
       renderVals() {
         const s = this.state;
         const sc = s.spacecraft;
         const list = sc ? sc.components : [];
-        const comps = list.map((c) => ({
+        const comps = list.filter((c) => matches(s.compQuery, c.name, c.key)).map((c) => ({
           key: c.key,
           name: c.name,
           cls: c.key === s.sel ? 'on' : '',
           pick: () => {
             if (c.key === s.sel) return;
-            this.setState({sel: c.key}); // setState is synchronous in cos3-runtime
+            // New component: its commands are different, so start their search fresh
+            this.setState({sel: c.key, cmdQuery: ''}); // setState is synchronous in cos3-runtime
             this.loadCommands();
           }
         }));
 
-        const cmds = (s.cmds || []).map((c) => ({
+        const allCmds = s.cmds || [];
+        const cmds = allCmds.filter((c) => matches(s.cmdQuery, c.name, c.description)).map((c) => ({
           label: c.name,
           description: c.description,
           hazardous: c.hazardous,
@@ -275,18 +367,29 @@
         };
 
         return {
+          checkingSession: s.auth === 'checking',
+          loggedOut: s.auth === 'out',
+          loggedIn: s.auth === 'in',
+          loginError: s.loginError,
+          loggingIn: s.loggingIn,
+          login: (e) => this.login(e),
+
           loading: s.loading,
           error: s.error,
           comps,
           count: list.length,
+          compQuery: s.compQuery,
+          searchComps: this.searchComps,
+          noCompMatches: list.length > 0 && comps.length === 0,
 
           cmds,
           cmdCount: cmds.length,
+          cmdQuery: s.cmdQuery,
+          searchCmds: this.searchCmds,
+          noCmdMatches: allCmds.length > 0 && cmds.length === 0,
           noComponent: !s.sel,
           cmdLoading: s.cmdLoading,
           cmdError: s.cmdError,
-          needLogin: s.needLogin,
-          login: (e) => this.login(e),
           isDebug: s.path === 'DEBUG', isRadio: s.path === 'RADIO',
           debugCls: s.path === 'DEBUG' ? 'on' : '', radioCls: s.path === 'RADIO' ? 'on' : '',
           toDebug: setPath('DEBUG'), toRadio: setPath('RADIO')

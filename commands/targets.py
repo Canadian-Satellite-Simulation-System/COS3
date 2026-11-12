@@ -10,6 +10,7 @@ class CommandPath(str, Enum):
 class UnknownComponent(KeyError):
     """The component key isn't in COMPONENT_TARGETS."""
 
+
 # Component key -> COSMOS target base names
 COMPONENT_TARGETS = {
     "adcs": ("GENERIC_ADCS",),

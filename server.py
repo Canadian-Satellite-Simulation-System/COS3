@@ -6,6 +6,7 @@ Usage (in the Ubuntu terminal, with Docker Desktop running):
 
 API (requires the `X-COS3: 1` header):
     GET  /api/status          current simulation state
+    GET  /api/session         {"loggedIn"}: whether the server has a COSMOS session
     GET  /api/config/default  default NOS3 configuration (read from backend/cfg)
     GET  /api/components      components enabled in the current simulation
     GET  /api/components/{key}/commands?path=DEBUG|RADIO
@@ -76,6 +77,8 @@ class Handler(SimpleHTTPRequestHandler):
 
         if path == "/api/status":
             self._send_json(200, launcher.status())
+        elif path == "/api/session":
+            self._send_json(200, {"loggedIn": cosmos.authenticated})
         elif path == "/api/config/default":
             try:
                 self._send_json(200, load_default_config())
@@ -97,12 +100,12 @@ class Handler(SimpleHTTPRequestHandler):
 
         try:
             path = CommandPath(path)
-
         except ValueError:
             return self._send_json(400, {"error": "path must be DEBUG or RADIO"})
 
         if not self._component_enabled(key):
             return
+
         try:
             commands = catalog.list_commands(key, path)
         except UnknownComponent:
