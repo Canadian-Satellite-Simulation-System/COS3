@@ -24,6 +24,19 @@
     return res.json();
   }
 
+  // Like api(), but failures resolve to { error, status } so callers can react to e.g. 401
+  async function apiWithStatus(method, path, body) {
+    try {
+      const headers = { 'X-COS3': '1' };
+      if (body !== undefined) headers['Content-Type'] = 'application/json';
+      const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+      const data = await res.json();
+      return res.ok ? data : { error: data.error || `Request failed (${res.status}).`, status: res.status };
+    } catch (e) {
+      return { error: "Can't reach the UI server.", status: 0 };
+    }
+  }
+
   function isBusy(state) {
     return state === 'starting' || state === 'stopping';
   }
@@ -57,6 +70,12 @@
     defaultConfig: () => api('GET', '/api/config/default').catch(() => ({ error: "Can't reach the UI server." })),
     // Components enabled in the current simulation: { spacecraft: [{ name, config, components: [{ key, name }] }] }
     components: () => api('GET', '/api/components').catch(() => ({ error: "Can't reach the UI server." })),
+    // Commands for an enabled component: { component, path, commands: [{ target, name, description, hazardous }] }.
+    // path: 'DEBUG' or 'RADIO'. Resolves to { error, status } on failure (status 401 = log in to COSMOS).
+    commands: (componentKey, path) =>
+      apiWithStatus('GET', `/api/components/${encodeURIComponent(componentKey)}/commands?path=${encodeURIComponent(path)}`),
+    // Log in to COSMOS: resolves to { loggedIn: true } or { error, status }
+    login: (password) => apiWithStatus('POST', '/api/login', { password }),
     // values: null for the default configuration, or { startUtc, durationS, components }.
     // Resolves to { error } if the server refuses the values.
     launch: (values) => api('POST', '/api/launch', values ? { values } : undefined),

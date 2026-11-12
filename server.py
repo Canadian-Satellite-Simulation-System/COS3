@@ -8,6 +8,8 @@ API (requires the `X-COS3: 1` header):
     GET  /api/status          current simulation state
     GET  /api/config/default  default NOS3 configuration (read from backend/cfg)
     GET  /api/components      components enabled in the current simulation
+    GET  /api/components/{key}/commands?path=DEBUG|RADIO
+                              commands for an enabled component (needs a COSMOS login)
     POST /api/launch   start the container and NOS3: default configuration, or a custom one
                        with body {"values": {"startUtc", "durationS", "components"}}
     POST /api/stop     stop NOS3 and the container
@@ -16,17 +18,19 @@ API (requires the `X-COS3: 1` header):
 """
 
 import json
-import urllib.error
+import re
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import custom_config
-from cosmos_client import CosmosJSONAPIClient
+from cosmos_client import CosmosError, CosmosJSONAPIClient, CosmosRejected, CosmosUnavailable, NotAuthenticated
 from current_config import load_enabled_components
 from default_config import ConfigError, load_default_config
 from launcher import launcher
+from commands.targets import CommandPath, UnknownComponent
+from commands.command_catalog import CommandCatalog
 
 ROOT_DIR = Path(__file__).resolve().parent
 UI_DIR = ROOT_DIR / "ui"
@@ -38,6 +42,15 @@ ALLOWED_HOSTS = [f"localhost:{PORT}", f"127.0.0.1:{PORT}"]
 MAX_BODY_BYTES = 64 * 1024
 
 cosmos = CosmosJSONAPIClient()
+catalog = CommandCatalog(cosmos)
+
+# Routes with path parameters
+COMPONENT_COMMANDS = re.compile(r"^/api/components/(?P<key>[a-z0-9_]+)/commands$")
+
+
+def enabled_component_keys():
+    """Keys of the components enabled in the current simulation. Raises ConfigError."""
+    return {c["key"] for c in load_enabled_components()["spacecraft"]["components"]}
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -73,8 +86,57 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json(200, load_enabled_components())
             except ConfigError as err:
                 self._send_json(500, {"error": str(err)})
+        elif match := COMPONENT_COMMANDS.match(path):
+            query = parse_qs(urlsplit(self.path).query)
+            self._component_commands(match["key"], query.get("path", ["DEBUG"])[0])
         else:
             self._send_json(404, {"error": "Not found"})
+
+    def _component_commands(self, key, path):
+        """GET /api/components/{key}/commands: the component's commands, if it's enabled."""
+
+        try:
+            path = CommandPath(path)
+
+        except ValueError:
+            return self._send_json(400, {"error": "path must be DEBUG or RADIO"})
+
+        if not self._component_enabled(key):
+            return
+        try:
+            commands = catalog.list_commands(key, path)
+        except UnknownComponent:
+            return self._send_json(404, {"error": f"No COSMOS commands for component {key}."})
+        except CosmosError as err:
+            return self._send_cosmos_error(err)
+
+        self._send_json(200, {"component": key, "path": path.value, "commands": [c.__dict__ for c in commands]})
+
+    def _component_enabled(self, key):
+        """Send 404 (or 500) and return False unless the component is enabled in the current simulation."""
+
+        try:
+            enabled = key in enabled_component_keys()
+        except ConfigError as err:
+            self._send_json(500, {"error": str(err)})
+            return False
+
+        if not enabled:
+            self._send_json(404, {"error": f"Component {key} isn't enabled in this simulation."})
+
+        return enabled
+
+    def _send_cosmos_error(self, err):
+        """Map a COSMOS client error to an HTTP status."""
+        if isinstance(err, NotAuthenticated):
+            status, message = 401, "Log in to COSMOS first."
+        elif isinstance(err, CosmosUnavailable):
+            status, message = 502, str(err)
+        elif isinstance(err, CosmosRejected):
+            status, message = 400, str(err)
+        else:
+            status, message = 502, str(err) or "COSMOS request failed."
+        self._send_json(status, {"error": message})
 
     def do_HEAD(self):
         if self._allowed():
@@ -104,6 +166,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._send_json(404, {"error": "Not found"})
 
         if launcher.begin(*operation):
+            # A launch may rebuild the COSMOS plugin, so command definitions can change
+            catalog.clear()
             self._send_json(202, {"state": launcher.state})
         else:
             self._send_json(409, {"error": "Busy"})
@@ -117,11 +181,10 @@ class Handler(SimpleHTTPRequestHandler):
 
         try:
             cosmos.authenticate(password)
-        except urllib.error.HTTPError as err:
-            message = "Wrong password." if err.code == 401 else f"COSMOS returned HTTP {err.code}."
-            return self._send_json(401, {"error": message})
-        except OSError:
-            return self._send_json(502, {"error": "Can't reach COSMOS. Is it running?"})
+        except NotAuthenticated:
+            return self._send_json(401, {"error": "Wrong password."})
+        except CosmosError as err:
+            return self._send_cosmos_error(err)
         self._send_json(200, {"loggedIn": True})
 
     def _read_json(self):
