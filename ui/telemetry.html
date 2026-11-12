@@ -105,9 +105,15 @@
                             </section>
                         </div>
 
-                        <div style="height:210px;flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+                        <!-- Placeholder charts for the other subsystems -->
+                        <div style="height:210px;flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;{{genShow}}">
                             <section class="pnl"><span class="h">Wheel speeds</span><div class="ph" style="flex:1"><span>Line chart</span></div></section>
                             <section class="pnl"><span class="h">Wheel momentum</span><div class="ph" style="flex:1"><span>Line chart</span></div></section>
+                        </div>
+                        <!-- CSS charts: filled by assets/css-charts.js -->
+                        <div style="height:210px;flex:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;{{cssShow}}">
+                            <div id="css-chart-raw" style="display:flex;min-width:0;min-height:0"></div>
+                            <div id="css-chart-value" style="display:flex;min-width:0;min-height:0"></div>
                         </div>
                         <span style="font-size:12px;color:#555">All telemetry and commands are logged with timestamps for export and replay.</span>
                     </div>
@@ -119,6 +125,7 @@
 
 <script src="assets/cos3-runtime.js"></script>
 <script src="assets/layout.js"></script>
+<script src="assets/css-charts.js"></script>
 <script>
     const POLL_MS = 1000;   // How often the CSS table refreshes
 
@@ -166,6 +173,7 @@
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
           this.setState({ css: fromBackend(data), cssError: '' });
+          CssCharts.addSample(data);
         } catch (err) {
           this.setState({ cssError: `Could not load sun sensor data: ${err.message || err}` });
         }
@@ -203,6 +211,7 @@
     }
 
     COS3.mount(Component, {});
+    CssCharts.init();
 </script>
 </body>
 </html>
