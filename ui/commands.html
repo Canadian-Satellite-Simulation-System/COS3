@@ -37,7 +37,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 <button class="btn sm {{cCls}}" onClick="{{toC}}" style="flex:1;border-radius:4px 0 0 4px">Component</button>
 <button class="btn sm {{hCls}}" onClick="{{toH}}" style="flex:1;border-radius:0 4px 4px 0;border-left:0">High-level</button>
 </div>
-<template data-if="{{isC}}"><select aria-label="Component"><option>Reaction wheels</option><option>Magnetorquers</option><option>Fine sun sensor</option><option>GPS receiver</option><option>Radio</option></select></template>
+<template data-if="{{isC}}"><select aria-label="Component"><option>Reaction wheels</option><option>Magnetorquers</option><option>Coarse sun sensor</option><option>GPS receiver</option><option>Radio</option></select></template>
 <input type="search" placeholder="Search…" aria-label="Search commands">
 <div style="display:flex;flex-direction:column;gap:2px">
 <template data-for="{{cmds}}" data-as="c">

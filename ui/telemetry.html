@@ -14,6 +14,11 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 .pnl{background:#fff;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
 .pk{display:flex;align-items:center;height:36px;padding:0 10px;border-radius:4px;font-size:13px;background:none;border:0;width:100%;text-align:left;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;color:#222}
 .pk.on{background:#222;color:#fff;font-weight:600}
+.meta{display:flex;gap:24px;flex-wrap:wrap;font-size:12px;color:#555}
+.meta b{color:#222;font-weight:600}
+.num{text-align:right}
+.bar{height:8px;background:#EEE;border-radius:4px;overflow:hidden;min-width:80px}
+.bar>div{height:100%;background:#222}
 </style>
 </head>
 <body>
@@ -61,7 +66,26 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 </div>
 
 <div style="flex:1;min-height:0;display:flex;gap:16px">
-<section class="box" style="flex:1;overflow:hidden">
+    <!-- Coarse sun sensor table (shown when "Coarse sun sensors" is selected) -->
+    <section class="box" style="flex:1;overflow:auto;{{cssShow}}">
+        <div class="meta" style="padding:10px 12px;border-bottom:1px solid #DDD">
+            <span>Target <b class="mono">{{css.target}}</b></span>
+            <span>Packet <b class="mono">{{css.packet}}</b></span>
+            <span>Received <b>{{css.count}}</b></span>
+            <span>Spacecraft time <b class="mono">{{css.scTime}}</b></span>
+            <span>Last update <b class="mono">{{css.time}} UTC</b></span>
+        </div>
+        <table>
+            <thead><tr><th>Item</th><th class="num">Raw (counts)</th><th class="num">Value</th><th>Units</th><th>Level</th><th>Limit</th><th>Time (UTC)</th></tr></thead>
+            <tbody>
+            <template data-for="{{cssRows}}" data-as="r">
+                <tr><td class="mono">{{r.name}}</td><td class="mono num">{{r.raw}}</td><td class="mono num" style="font-weight:600">{{r.volts}}</td><td>V</td><td><div class="bar"><div style="width:{{r.pct}}%"></div></div></td><td><span class="lim">{{r.limit}}</span></td><td class="mono" style="color:#555">{{r.time}}</td></tr>
+            </template>
+            </tbody>
+        </table>
+        <div style="padding:10px 12px;font-size:12px;color:#555">Value = raw counts × 0.001 V (0–5 V range). No limits are defined for these items in COSMOS yet.</div>
+    </section>
+<section class="box" style="flex:1;overflow:hidden;{{genShow}}">
 <table>
 <thead><tr><th>Item</th><th>Value</th><th>Units</th><th>Limit</th><th>Time (UTC)</th></tr></thead>
 <tbody>
@@ -79,6 +103,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 <span class="mono" style="font-size:11px;color:#555">[hh:mm:ss]</span>
 </div>
 </template>
+<span style="font-size:12px;color:#555;{{noAlarmShow}}">No active alarms.</span>
 <div style="flex:1"></div>
 
 </section>
@@ -100,34 +125,88 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 <script src="assets/cos3-runtime.js"></script>
 <script src="assets/layout.js"></script>
 <script>
-class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { sel: 'Reaction wheel', src: 'g' }; }
-  renderVals() {
-    const names = ['Overview', 'Reaction wheel', 'Magnetorquer', 'Fine sun sensors', 'Photodiode'];
-    const pages = names.map((n) => ({ name: n, cls: n === this.state.sel ? 'on' : '', pick: () => this.setState({ sel: n }) }));
-    const yel = 'border-style:dashed;';
-    const red = 'background:#222;color:#fff;';
-    const items = [
-      { n: 'WHEEL_1_SPEED', u: 'rpm', l: 'OK', ls: '' },
-      { n: 'WHEEL_2_SPEED', u: 'rpm', l: 'RED', ls: red },
-      { n: 'WHEEL_3_SPEED', u: 'rpm', l: 'OK', ls: '' },
-      { n: 'WHEEL_1_TORQUE', u: 'mNm', l: 'OK', ls: '' },
-      { n: 'MOMENTUM', u: 'Nms', l: 'YELLOW', ls: yel },
-      { n: 'MODE', u: '—', l: 'OK', ls: '' },
-      { n: 'CMD_COUNT', u: '—', l: 'OK', ls: '' }
+    // Sample reply from COSMOS get_tlm_packet("GENERIC_CSS_DEBUG", "GENERIC_CSS_DATA_TLM").
+    // Same shape the backend will return later: [item name, value, limits state].
+    const SAMPLE_CSS_PACKET = [
+      ['CCSDS_STREAMID', 2321, null], ['CCSDS_SEQUENCE', 49156, null], ['CCSDS_LENGTH', 21, null],
+      ['CCSDS_SECONDS', 13, null], ['CCSDS_SUBSECS', 1310, null], ['CCSDS_SPARE', 0, null],
+      ['RAW_CSS_0', 0, null], ['RAW_CSS_1', 813, null], ['RAW_CSS_2', 0, null],
+      ['RAW_CSS_3', 580, null], ['RAW_CSS_4', 50, null], ['RAW_CSS_5', 0, null],
+      ['PACKET_TIMESECONDS', 1794360715.5824566, null], ['PACKET_TIMEFORMATTED', '2026/11/11 01:31:55.582', null],
+      ['RECEIVED_TIMESECONDS', 1794360715.5824566, null], ['RECEIVED_TIMEFORMATTED', '2026/11/11 01:31:55.582', null],
+      ['RECEIVED_COUNT', 33, null]
     ];
-    const alarms = [{ l: 'RED', ls: red, item: 'WHEEL_2_SPEED' }, { l: 'YELLOW', ls: yel, item: 'MOMENTUM' }];
-    const g = this.state.src === 'g';
-    return {
-      yes: true, pages, items, alarms, sel: this.state.sel,
-      gCls: g ? 'on' : '', fCls: g ? '' : 'on',
-      srcTag: g ? '◆ Ground software (COSMOS)' : '◆ Flight software direct',
-      toG: () => this.setState({ src: 'g' }), toF: () => this.setState({ src: 'f' })
-    };
-  }
-}
 
-COS3.mount(Component, {});
+    const CSS_VOLTS_PER_COUNT = 0.001;   // Volts = raw × 0.001
+    const CSS_MAX_VOLTS = 5;
+
+    // Turn a get_tlm_packet reply into what the page displays.
+    function parseCssPacket(packet) {
+      const v = Object.fromEntries(packet.map(([name, value, limit]) => [name, { value, limit }]));
+      const time = String(v.PACKET_TIMEFORMATTED?.value ?? '').split(' ')[1] ?? '—';   // hh:mm:ss.mmm
+      const rows = [0, 1, 2, 3, 4, 5].map((i) => {
+        const item = v[`RAW_CSS_${i}`] ?? { value: null, limit: null };
+        const raw = item.value;
+        const volts = raw == null ? null : raw * CSS_VOLTS_PER_COUNT;
+        return {
+          name: `RAW_CSS_${i}`,
+          raw: raw ?? '—',
+          volts: volts == null ? '—' : volts.toFixed(3),
+          pct: volts == null ? 0 : Math.min(100, (volts / CSS_MAX_VOLTS) * 100).toFixed(1),
+          limit: item.limit ?? '—',
+          time
+        };
+      });
+      const sec = v.CCSDS_SECONDS?.value, sub = v.CCSDS_SUBSECS?.value;
+      return {
+        target: 'GENERIC_CSS_DEBUG',
+        packet: 'GENERIC_CSS_DATA_TLM',
+        count: v.RECEIVED_COUNT?.value ?? '—',
+        scTime: sec == null ? '—' : `${(sec + (sub ?? 0) / 65536).toFixed(2)} s`,
+        time,
+        rows
+      };
+    }
+
+    class Component extends DCLogic {
+      constructor(props) {
+        super(props);
+        this.state = { sel: 'Coarse sun sensors', src: 'g', css: parseCssPacket(SAMPLE_CSS_PACKET) };
+      }
+
+      // Later: call this.setCssPacket(reply) each time the backend sends a new packet.
+      setCssPacket(packet) { this.setState({ css: parseCssPacket(packet) }); }
+      renderVals() {
+        const names = ['Overview', 'Reaction wheel', 'Magnetorquer', 'Coarse sun sensors', 'Photodiode'];
+        const pages = names.map((n) => ({ name: n, cls: n === this.state.sel ? 'on' : '', pick: () => this.setState({ sel: n }) }));
+        const yel = 'border-style:dashed;';
+        const red = 'background:#222;color:#fff;';
+        const items = [
+          { n: 'WHEEL_1_SPEED', u: 'rpm', l: 'OK', ls: '' },
+          { n: 'WHEEL_2_SPEED', u: 'rpm', l: 'RED', ls: red },
+          { n: 'WHEEL_3_SPEED', u: 'rpm', l: 'OK', ls: '' },
+          { n: 'WHEEL_1_TORQUE', u: 'mNm', l: 'OK', ls: '' },
+          { n: 'MOMENTUM', u: 'Nms', l: 'YELLOW', ls: yel },
+          { n: 'MODE', u: '—', l: 'OK', ls: '' },
+          { n: 'CMD_COUNT', u: '—', l: 'OK', ls: '' }
+        ];
+        const isCss = this.state.sel === 'Coarse sun sensors';
+        const hide = 'display:none;';
+        const alarms = isCss ? [] : [{ l: 'RED', ls: red, item: 'WHEEL_2_SPEED' }, { l: 'YELLOW', ls: yel, item: 'MOMENTUM' }];
+        const g = this.state.src === 'g';
+        return {
+          yes: true, pages, items, alarms, sel: this.state.sel,
+          css: this.state.css, cssRows: this.state.css.rows,
+          cssShow: isCss ? '' : hide, genShow: isCss ? hide : '',
+          noAlarmShow: alarms.length ? hide : '',
+          gCls: g ? 'on' : '', fCls: g ? '' : 'on',
+          srcTag: g ? '◆ Ground software (COSMOS)' : '◆ Flight software direct',
+          toG: () => this.setState({ src: 'g' }), toF: () => this.setState({ src: 'f' })
+        };
+      }
+    }
+
+    COS3.mount(Component, {});
 </script>
 </body>
 </html>
