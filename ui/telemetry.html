@@ -1,25 +1,26 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=1440">
-<title>COS3 – Telemetry</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="assets/style.css">
-<style>
-/* Styles used only on this page */
-th{text-align:left;font-weight:600;color:#444;border-bottom:1.5px solid #999;padding:8px 12px;background:#F4F4F4}
-td{border-bottom:1px solid #DDD;padding:8px 12px}
-input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px solid #999;border-radius:4px;padding:0 10px;box-sizing:border-box;background:#fff;color:#222;width:100%}
-.pnl{background:#fff;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
-.pk{display:flex;align-items:center;height:36px;padding:0 10px;border-radius:4px;font-size:13px;background:none;border:0;width:100%;text-align:left;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;color:#222}
-.pk.on{background:#222;color:#fff;font-weight:600}
-.meta{display:flex;gap:24px;flex-wrap:wrap;font-size:12px;color:#555}
-.meta b{color:#222;font-weight:600}
-.num{text-align:right}
-.bar{height:8px;background:#EEE;border-radius:4px;overflow:hidden;min-width:80px}
-.bar>div{height:100%;background:#222}
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=1440">
+    <title>COS3 – Telemetry</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="assets/style.css">
+    <style>
+        /* Styles used only on this page */
+        th{text-align:left;font-weight:600;color:#444;border-bottom:1.5px solid #999;padding:8px 12px;background:#F4F4F4}
+        td{border-bottom:1px solid #DDD;padding:8px 12px}
+        input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px solid #999;border-radius:4px;padding:0 10px;box-sizing:border-box;background:#fff;color:#222;width:100%}
+        .pnl{background:#fff;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+        .pk{display:flex;align-items:center;height:36px;padding:0 10px;border-radius:4px;font-size:13px;background:none;border:0;width:100%;text-align:left;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;color:#222}
+        .pk.on{background:#222;color:#fff;font-weight:600}
+        .meta{display:flex;gap:24px;flex-wrap:wrap;font-size:12px;color:#555}
+        .meta b{color:#222;font-weight:600}
+        .num{text-align:right}
+        .bar{height:8px;background:#EEE;border-radius:4px;overflow:hidden;min-width:80px}
+        .bar>div{height:100%;background:#222}
+        .err{padding:8px 12px;color:#B00;font-size:12px;border-bottom:1px solid #DDD}
+    </style>
 </head>
 <body>
 <div id="app"></div>
@@ -27,155 +28,149 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 <!-- Page markup. {{name}} values come from renderVals() in the script below.
      Header and sidebar are shared: see assets/layout.js. -->
 <template id="page">
-<div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
-<div data-cos3="header" data-status="running"></div>
-<div style="flex:1;display:flex;min-height:0">
-<div data-cos3="nav" data-active="telemetry"></div>
-<main style="flex:1;min-width:0;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
-<div class="row" style="gap:12px">
-<h1 style="margin:0;font-size:22px">Telemetry</h1>
-<div style="flex:1"></div>
-<span style="font-size:12px;color:#555">View from</span>
-<div role="group" aria-label="Telemetry source" style="display:flex">
-<button class="btn sm {{gCls}}" onClick="{{toG}}" style="border-radius:4px 0 0 4px">Ground software</button>
-<button class="btn sm {{fCls}}" onClick="{{toF}}" style="border-radius:0 4px 4px 0;border-left:0">Flight software (direct)</button>
-</div>
-<span class="tag">{{srcTag}}</span>
-</div>
+    <div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
+        <div data-cos3="header" data-status="running"></div>
+        <div style="flex:1;display:flex;min-height:0">
+            <div data-cos3="nav" data-active="telemetry"></div>
+            <main style="flex:1;min-width:0;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+                <div class="row" style="gap:12px">
+                    <h1 style="margin:0;font-size:22px">Telemetry</h1>
+                    <div style="flex:1"></div>
+                    <span style="font-size:12px;color:#555">View from</span>
+                    <div role="group" aria-label="Telemetry source" style="display:flex">
+                        <button class="btn sm {{gCls}}" onClick="{{toG}}" style="border-radius:4px 0 0 4px">Ground software</button>
+                        <button class="btn sm {{fCls}}" onClick="{{toF}}" style="border-radius:0 4px 4px 0;border-left:0">Flight software (direct)</button>
+                    </div>
+                    <span class="tag">{{srcTag}}</span>
+                </div>
 
-<div style="flex:1;min-height:0;display:flex;gap:16px">
-<section class="pnl" style="width:230px;flex:none">
-<div class="row"></div>
-<div style="display:flex;flex-direction:column;gap:2px">
-<template data-for="{{pages}}" data-as="p">
-<button class="pk {{p.cls}}" onClick="{{p.pick}}">{{p.name}}</button>
-</template>
-</div>
-<div style="flex:1"></div>
+                <div style="flex:1;min-height:0;display:flex;gap:16px">
+                    <section class="pnl" style="width:230px;flex:none">
+                        <div class="row"></div>
+                        <div style="display:flex;flex-direction:column;gap:2px">
+                            <template data-for="{{pages}}" data-as="p">
+                                <button class="pk {{p.cls}}" onClick="{{p.pick}}">{{p.name}}</button>
+                            </template>
+                        </div>
+                        <div style="flex:1"></div>
+                    </section>
 
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
+                        <div class="row">
+                            <span style="font-weight:700;font-size:16px;flex:1">{{sel}}</span>
+                            <input type="search" placeholder="Filter items…" aria-label="Filter items" style="width:200px">
+                        </div>
 
-</section>
+                        <div style="flex:1;min-height:0;display:flex;gap:16px">
+                            <!-- Coarse sun sensor table (shown when "Coarse sun sensors" is selected) -->
+                            <section class="box" style="flex:1;overflow:auto;display:flex;flex-direction:column;{{cssShow}}">
+                                <div class="err" style="{{errShow}}">{{cssError}}</div>
+                                <div class="meta" style="padding:10px 12px;border-bottom:1px solid #DDD">
+                                    <span>Target <b class="mono">{{css.target}}</b></span>
+                                    <span>Packet <b class="mono">{{css.packet}}</b></span>
+                                    <span>Received <b>{{css.count}}</b></span>
+                                    <span>Spacecraft time <b class="mono">{{css.scTime}}</b></span>
+                                    <span>Last update <b class="mono">{{css.time}} UTC</b></span>
+                                </div>
+                                <table>
+                                    <thead><tr><th>Item</th><th class="num">Raw (counts)</th><th class="num">Value</th><th>Units</th><th>Level</th><th>Limit</th><th>Time (UTC)</th></tr></thead>
+                                    <tbody>
+                                    <template data-for="{{cssRows}}" data-as="r">
+                                        <tr><td class="mono">{{r.name}}</td><td class="mono num">{{r.raw}}</td><td class="mono num" style="font-weight:600">{{r.volts}}</td><td>{{r.units}}</td><td><div class="bar"><div style="width:{{r.pct}}%"></div></div></td><td><span class="lim">{{r.limit}}</span></td><td class="mono" style="color:#555">{{r.time}}</td></tr>
+                                    </template>
+                                    </tbody>
+                                </table>
+                                <div style="padding:10px 12px;font-size:12px;color:#555">Value = raw counts × 0.001 V (0–5 V range). No limits are defined for these items in COSMOS yet.</div>
+                            </section>
+                            <section class="box" style="flex:1;overflow:hidden;{{genShow}}">
+                                <table>
+                                    <thead><tr><th>Item</th><th>Value</th><th>Units</th><th>Limit</th><th>Time (UTC)</th></tr></thead>
+                                    <tbody>
+                                    <template data-for="{{items}}" data-as="it">
+                                        <tr><td class="mono">{{it.n}}</td><td class="mono" style="font-weight:600">[value]</td><td>{{it.u}}</td><td><span class="lim" style="{{it.ls}}">{{it.l}}</span></td><td class="mono" style="color:#555">[hh:mm:ss]</td></tr>
+                                    </template>
+                                    </tbody>
+                                </table>
+                            </section>
+                            <section class="pnl" style="width:260px;flex:none">
+                                <div class="row"><span class="h" style="flex:1">Alarms</span><span class="tag">◆ Limits</span></div>
+                                <template data-for="{{alarms}}" data-as="a">
+                                    <div style="border:1px solid #CCC;border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:4px">
+                                        <div class="row"><span class="lim" style="{{a.ls}}">{{a.l}}</span><span class="mono" style="font-size:12px;font-weight:600">{{a.item}}</span></div>
+                                        <span class="mono" style="font-size:11px;color:#555">[hh:mm:ss]</span>
+                                    </div>
+                                </template>
+                                <span style="font-size:12px;color:#555;{{noAlarmShow}}">No active alarms.</span>
+                                <div style="flex:1"></div>
+                            </section>
+                        </div>
 
-<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
-<div class="row">
-<span style="font-weight:700;font-size:16px;flex:1">{{sel}}</span>
-<input type="search" placeholder="Filter items…" aria-label="Filter items" style="width:200px">
-
-
-
-</div>
-
-<div style="flex:1;min-height:0;display:flex;gap:16px">
-    <!-- Coarse sun sensor table (shown when "Coarse sun sensors" is selected) -->
-    <section class="box" style="flex:1;overflow:auto;{{cssShow}}">
-        <div class="meta" style="padding:10px 12px;border-bottom:1px solid #DDD">
-            <span>Target <b class="mono">{{css.target}}</b></span>
-            <span>Packet <b class="mono">{{css.packet}}</b></span>
-            <span>Received <b>{{css.count}}</b></span>
-            <span>Spacecraft time <b class="mono">{{css.scTime}}</b></span>
-            <span>Last update <b class="mono">{{css.time}} UTC</b></span>
+                        <div style="height:210px;flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+                            <section class="pnl"><span class="h">Wheel speeds</span><div class="ph" style="flex:1"><span>Line chart</span></div></section>
+                            <section class="pnl"><span class="h">Wheel momentum</span><div class="ph" style="flex:1"><span>Line chart</span></div></section>
+                        </div>
+                        <span style="font-size:12px;color:#555">All telemetry and commands are logged with timestamps for export and replay.</span>
+                    </div>
+                </div>
+            </main>
         </div>
-        <table>
-            <thead><tr><th>Item</th><th class="num">Raw (counts)</th><th class="num">Value</th><th>Units</th><th>Level</th><th>Limit</th><th>Time (UTC)</th></tr></thead>
-            <tbody>
-            <template data-for="{{cssRows}}" data-as="r">
-                <tr><td class="mono">{{r.name}}</td><td class="mono num">{{r.raw}}</td><td class="mono num" style="font-weight:600">{{r.volts}}</td><td>V</td><td><div class="bar"><div style="width:{{r.pct}}%"></div></div></td><td><span class="lim">{{r.limit}}</span></td><td class="mono" style="color:#555">{{r.time}}</td></tr>
-            </template>
-            </tbody>
-        </table>
-        <div style="padding:10px 12px;font-size:12px;color:#555">Value = raw counts × 0.001 V (0–5 V range). No limits are defined for these items in COSMOS yet.</div>
-    </section>
-<section class="box" style="flex:1;overflow:hidden;{{genShow}}">
-<table>
-<thead><tr><th>Item</th><th>Value</th><th>Units</th><th>Limit</th><th>Time (UTC)</th></tr></thead>
-<tbody>
-<template data-for="{{items}}" data-as="it">
-<tr><td class="mono">{{it.n}}</td><td class="mono" style="font-weight:600">[value]</td><td>{{it.u}}</td><td><span class="lim" style="{{it.ls}}">{{it.l}}</span></td><td class="mono" style="color:#555">[hh:mm:ss]</td></tr>
-</template>
-</tbody>
-</table>
-</section>
-<section class="pnl" style="width:260px;flex:none">
-<div class="row"><span class="h" style="flex:1">Alarms</span><span class="tag">◆ Limits</span></div>
-<template data-for="{{alarms}}" data-as="a">
-<div style="border:1px solid #CCC;border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:4px">
-<div class="row"><span class="lim" style="{{a.ls}}">{{a.l}}</span><span class="mono" style="font-size:12px;font-weight:600">{{a.item}}</span></div>
-<span class="mono" style="font-size:11px;color:#555">[hh:mm:ss]</span>
-</div>
-</template>
-<span style="font-size:12px;color:#555;{{noAlarmShow}}">No active alarms.</span>
-<div style="flex:1"></div>
-
-</section>
-</div>
-
-<div style="height:210px;flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
-<section class="pnl"><span class="h">Wheel speeds</span><div class="ph" style="flex:1"><span>Line chart</span></div></section>
-<section class="pnl"><span class="h">Wheel momentum</span><div class="ph" style="flex:1"><span>Line chart</span></div></section>
-
-</div>
-<span style="font-size:12px;color:#555">All telemetry and commands are logged with timestamps for export and replay.</span>
-</div>
-</div>
-</main>
-</div>
-</div>
+    </div>
 </template>
 
 <script src="assets/cos3-runtime.js"></script>
 <script src="assets/layout.js"></script>
 <script>
-    // Sample reply from COSMOS get_tlm_packet("GENERIC_CSS_DEBUG", "GENERIC_CSS_DATA_TLM").
-    // Same shape the backend will return later: [item name, value, limits state].
-    const SAMPLE_CSS_PACKET = [
-      ['CCSDS_STREAMID', 2321, null], ['CCSDS_SEQUENCE', 49156, null], ['CCSDS_LENGTH', 21, null],
-      ['CCSDS_SECONDS', 13, null], ['CCSDS_SUBSECS', 1310, null], ['CCSDS_SPARE', 0, null],
-      ['RAW_CSS_0', 0, null], ['RAW_CSS_1', 813, null], ['RAW_CSS_2', 0, null],
-      ['RAW_CSS_3', 580, null], ['RAW_CSS_4', 50, null], ['RAW_CSS_5', 0, null],
-      ['PACKET_TIMESECONDS', 1794360715.5824566, null], ['PACKET_TIMEFORMATTED', '2026/11/11 01:31:55.582', null],
-      ['RECEIVED_TIMESECONDS', 1794360715.5824566, null], ['RECEIVED_TIMEFORMATTED', '2026/11/11 01:31:55.582', null],
-      ['RECEIVED_COUNT', 33, null]
-    ];
+    const POLL_MS = 1000;   // How often the CSS table refreshes
 
-    const CSS_VOLTS_PER_COUNT = 0.001;   // Volts = raw × 0.001
-    const CSS_MAX_VOLTS = 5;
+    // Shown until the first reply arrives from the backend
+    const EMPTY_CSS = {
+      target: 'GENERIC_CSS_DEBUG', packet: 'GENERIC_CSS_DATA_TLM',
+      count: '—', scTime: '—', time: '—', rows: []
+    };
 
-    // Turn a get_tlm_packet reply into what the page displays.
-    function parseCssPacket(packet) {
-      const v = Object.fromEntries(packet.map(([name, value, limit]) => [name, { value, limit }]));
-      const time = String(v.PACKET_TIMEFORMATTED?.value ?? '').split(' ')[1] ?? '—';   // hh:mm:ss.mmm
-      const rows = [0, 1, 2, 3, 4, 5].map((i) => {
-        const item = v[`RAW_CSS_${i}`] ?? { value: null, limit: null };
-        const raw = item.value;
-        const volts = raw == null ? null : raw * CSS_VOLTS_PER_COUNT;
-        return {
-          name: `RAW_CSS_${i}`,
-          raw: raw ?? '—',
-          volts: volts == null ? '—' : volts.toFixed(3),
-          pct: volts == null ? 0 : Math.min(100, (volts / CSS_MAX_VOLTS) * 100).toFixed(1),
-          limit: item.limit ?? '—',
-          time
-        };
-      });
-      const sec = v.CCSDS_SECONDS?.value, sub = v.CCSDS_SUBSECS?.value;
+    // Turn the backend's /api/telemetry/css reply into what the table displays.
+    // The backend already converts raw counts to volts and computes the level.
+    function fromBackend(d) {
+      const fmt = (x, digits) => (x == null ? '—' : Number(x).toFixed(digits));
       return {
-        target: 'GENERIC_CSS_DEBUG',
-        packet: 'GENERIC_CSS_DATA_TLM',
-        count: v.RECEIVED_COUNT?.value ?? '—',
-        scTime: sec == null ? '—' : `${(sec + (sub ?? 0) / 65536).toFixed(2)} s`,
-        time,
-        rows
+        target: d.target,
+        packet: d.packet,
+        count: d.received_count ?? '—',
+        scTime: d.spacecraft_time == null ? '—' : `${fmt(d.spacecraft_time, 2)} s`,
+        time: d.last_update ? d.last_update.split(' ')[1] : '—',
+        rows: d.rows.map((r) => ({
+          name: r.name,
+          raw: r.raw ?? '—',
+          volts: fmt(r.value, 3),
+          units: r.units || '—',
+          pct: r.level ?? 0,
+          limit: r.limit ?? '—',
+          time: r.time ?? '—'
+        }))
       };
     }
 
     class Component extends DCLogic {
       constructor(props) {
         super(props);
-        this.state = { sel: 'Coarse sun sensors', src: 'g', css: parseCssPacket(SAMPLE_CSS_PACKET) };
+        this.state = { sel: 'Coarse sun sensors', src: 'g', css: EMPTY_CSS, cssError: '' };
+        this.pollCss();
+        setInterval(() => this.pollCss(), POLL_MS);
       }
 
-      // Later: call this.setCssPacket(reply) each time the backend sends a new packet.
-      setCssPacket(packet) { this.setState({ css: parseCssPacket(packet) }); }
+      // Ask the backend for the latest CSS packet (only while that tab is open).
+      async pollCss() {
+        if (this.state.sel !== 'Coarse sun sensors') return;
+        try {
+          const res = await fetch('/api/telemetry/css', { headers: { 'X-COS3': '1' } });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+          this.setState({ css: fromBackend(data), cssError: '' });
+        } catch (err) {
+          this.setState({ cssError: `Could not load sun sensor data: ${err.message || err}` });
+        }
+      }
+
       renderVals() {
         const names = ['Overview', 'Reaction wheel', 'Magnetorquer', 'Coarse sun sensors', 'Photodiode'];
         const pages = names.map((n) => ({ name: n, cls: n === this.state.sel ? 'on' : '', pick: () => this.setState({ sel: n }) }));
@@ -197,6 +192,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
         return {
           yes: true, pages, items, alarms, sel: this.state.sel,
           css: this.state.css, cssRows: this.state.css.rows,
+          cssError: this.state.cssError, errShow: this.state.cssError ? '' : hide,
           cssShow: isCss ? '' : hide, genShow: isCss ? hide : '',
           noAlarmShow: alarms.length ? hide : '',
           gCls: g ? 'on' : '', fCls: g ? '' : 'on',

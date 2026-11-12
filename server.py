@@ -11,7 +11,7 @@ API (requires the `X-COS3: 1` header):
                        with body {"values": {"startUtc", "durationS", "components"}}
     POST /api/stop     stop NOS3 and the container
 """
-
+import cosmos_telemetry
 import json
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -60,6 +60,15 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json(200, load_default_config())
             except ConfigError as err:
                 self._send_json(500, {"error": str(err)})
+        elif path.startswith("/api/telemetry/"):
+             key = path.removeprefix("/api/telemetry/")
+             if key not in cosmos_telemetry.COMPONENTS:
+                 self._send_json(404, {"error": f"Unknown component: {key}"})
+                 return
+             try:
+                 self._send_json(200, cosmos_telemetry.get_component(key))
+             except Exception as err:   # COSMOS down, timeout, bad password, unknown packet...
+                 self._send_json(502, {"error": f"COSMOS request failed: {err}"})
         else:
             self._send_json(404, {"error": "Not found"})
 
