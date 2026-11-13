@@ -11,6 +11,11 @@ API (requires the `X-COS3: 1` header):
     GET  /api/components      components enabled in the current simulation
     GET  /api/components/{key}/commands?path=DEBUG|RADIO
                               commands for an enabled component (needs a COSMOS login)
+    GET  /api/commands/{target}/{name}
+                              one command and its settable parameters (needs a COSMOS login)
+    POST /api/commands/{target}/{name}/validate
+                              body {"values": {name: value}} -> {"errors": {name: message}}
+                              (commands/validation.py is the only place parameters are checked)
     POST /api/launch   start the container and NOS3: default configuration, or a custom one
                        with body {"values": {"startUtc", "durationS", "components"}}
     POST /api/stop     stop NOS3 and the container
@@ -30,8 +35,9 @@ from cosmos_client import CosmosError, CosmosJSONAPIClient, CosmosRejected, Cosm
 from current_config import load_enabled_components
 from default_config import ConfigError, load_default_config
 from launcher import launcher
-from commands.targets import CommandPath, UnknownComponent
-from commands.command_catalog import CommandCatalog
+from commands.targets import CommandPath, UnknownComponent, component_for
+from commands.command_catalog import CommandCatalog, UnknownCommand
+from commands.validation import validate
 
 ROOT_DIR = Path(__file__).resolve().parent
 UI_DIR = ROOT_DIR / "ui"
@@ -47,6 +53,8 @@ catalog = CommandCatalog(cosmos)
 
 # Routes with path parameters
 COMPONENT_COMMANDS = re.compile(r"^/api/components/(?P<key>[a-z0-9_]+)/commands$")
+COMMAND = re.compile(r"^/api/commands/(?P<target>[A-Z0-9_]+)/(?P<name>[A-Z0-9_]+)$")
+COMMAND_VALIDATE = re.compile(r"^/api/commands/(?P<target>[A-Z0-9_]+)/(?P<name>[A-Z0-9_]+)/validate$")
 
 
 def enabled_component_keys():
@@ -92,8 +100,50 @@ class Handler(SimpleHTTPRequestHandler):
         elif match := COMPONENT_COMMANDS.match(path):
             query = parse_qs(urlsplit(self.path).query)
             self._component_commands(match["key"], query.get("path", ["DEBUG"])[0])
+        elif match := COMMAND.match(path):
+            self._command(match["target"], match["name"])
         else:
             self._send_json(404, {"error": "Not found"})
+
+    def _command(self, target, name):
+        """GET /api/commands/{target}/{name}: one command and its parameters, if its component is enabled."""
+        definition = self._find_command(target, name)
+        if definition is not None:
+            self._send_json(200, definition.to_dict())
+
+    def _validate_command(self, target, name):
+        """POST /api/commands/{target}/{name}/validate: check parameter values without sending.
+
+        Always 200 when the command exists: {"errors": {}} means every value is valid.
+        """
+        try:
+            values = self._read_json().get("values", {})
+        except ValueError as err:
+            return self._send_json(400, {"error": str(err)})
+        if not isinstance(values, dict):
+            return self._send_json(400, {"error": "values must be an object."})
+
+        definition = self._find_command(target, name)
+        if definition is None:
+            return
+        _, errors = validate(definition, values)
+        self._send_json(200, {"errors": errors})
+
+    def _find_command(self, target, name):
+        """The command's definition if its component is enabled; otherwise sends an error and returns None."""
+        key = component_for(target)
+        if key is None:
+            self._send_json(404, {"error": f"Unknown target {target}."})
+            return None
+        if not self._component_enabled(key):
+            return None
+        try:
+            return catalog.get_command(target, name)
+        except UnknownCommand:
+            self._send_json(404, {"error": f"Unknown command {target} {name}."})
+        except CosmosError as err:
+            self._send_cosmos_error(err)
+        return None
 
     def _component_commands(self, key, path):
         """GET /api/components/{key}/commands: the component's commands, if it's enabled."""
@@ -154,6 +204,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._login()
         if path == "/api/noop":
             return self._send_noop()
+        if match := COMMAND_VALIDATE.match(path):
+            return self._validate_command(match["target"], match["name"])
 
         if path == "/api/launch":
             # Optional body {"values": {...}} for a custom configuration; no body = default

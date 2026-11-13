@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=1440">
-  <title>Commands</title>
+  <title>COS3: Commands</title>
   <link
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap"
     rel="stylesheet" media="print" onload="this.media='all'">
@@ -91,7 +91,7 @@
       font-size: 13px
     }
 
-    .err {
+    .msg-err {
       margin: 0;
       color: #b00020;
       font-size: 13px
@@ -130,6 +130,100 @@
     .path-switch .seg:focus-visible {
       outline: 2px solid #222;
       outline-offset: -4px
+    }
+
+    /* Command details: parameter form */
+    .cform {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 0;
+      flex: 1
+    }
+
+    .chead {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #DDD
+    }
+
+    .hazard {
+      border: 1.5px solid #222;
+      border-left-width: 6px;
+      border-radius: 4px;
+      padding: 10px 12px;
+      background: #FFF4E5;
+      font-size: 13px
+    }
+
+    .prm {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      overflow: auto;
+      align-content: start;
+      flex: 1;
+      min-height: 0
+    }
+
+    .pcard {
+      border: 1.5px solid #CCC;
+      border-radius: 4px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #fff
+    }
+
+    .pcard.bad {
+      border-color: #b00020
+    }
+
+    .pcard label {
+      font: 600 13px 'IBM Plex Mono', monospace;
+      color: #222
+    }
+
+    .pcard input.mono {
+      font-family: 'IBM Plex Mono', monospace
+    }
+
+    .pcard [aria-invalid="true"] {
+      border-color: #b00020
+    }
+
+    .req {
+      font: 600 10px 'IBM Plex Sans', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #b00020
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 2px 12px;
+      margin: 0;
+      font-size: 12px
+    }
+
+    .meta dt {
+      color: #555
+    }
+
+    .meta dd {
+      margin: 0;
+      font-family: 'IBM Plex Mono', monospace;
+      overflow-wrap: anywhere
+    }
+
+    .cactions {
+      gap: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #DDD
     }
   </style>
 </head>
@@ -173,7 +267,7 @@
                   <input id="cosmos-password" type="password" autocomplete="current-password" required autofocus>
                 </div>
                 <template data-if="{{loginError}}">
-                  <p role="alert" class="err">{{loginError}}</p>
+                  <p role="alert" class="msg-err">{{loginError}}</p>
                 </template>
                 <button class="btn" type="submit" disabled="{{loggingIn}}">Log in</button>
               </form>
@@ -213,7 +307,7 @@
                 <p class="hint">Loading commands…</p>
               </template>
               <template data-if="{{cmdError}}">
-                <p role="alert" class="err">{{cmdError}}</p>
+                <p role="alert" class="msg-err">{{cmdError}}</p>
               </template>
               <template data-if="{{noCmdMatches}}">
                 <p class="hint">No matching commands.</p>
@@ -227,6 +321,91 @@
                 </template>
               </div>
             </section>
+
+            <section class="pnl" style="flex:1;min-width:0" aria-label="Command details">
+              <template data-if="{{noCommand}}">
+                <p class="hint">Select a command to see its details and set its parameters.</p>
+              </template>
+              <template data-if="{{defLoading}}">
+                <p class="hint">Loading command details…</p>
+              </template>
+              <template data-if="{{defError}}">
+                <p role="alert" class="msg-err">{{defError}}</p>
+              </template>
+
+              <template data-if="{{def}}">
+                <form class="cform" onSubmit="{{submitForm}}" novalidate aria-label="Command parameters">
+                  <div class="chead">
+                    <div class="row" style="gap:10px">
+                      <div style="font:600 16px 'IBM Plex Mono',monospace">{{def.name}}</div>
+                    </div>
+                    <template data-if="{{def.description}}">
+                      <p class="hint" style="margin-top:4px">{{def.description}}</p>
+                    </template>
+                  </div>
+
+                  <template data-if="{{def.hazardous}}">
+                    <div class="hazard" role="note"><strong>Hazardous command.</strong> {{hazardText}}</div>
+                  </template>
+
+                  <div class="row" style="gap:10px">
+                    <span class="h">Parameters</span>
+                  </div>
+
+                  <template data-if="{{noParams}}">
+                    <p class="hint">This command takes no parameters.</p>
+                  </template>
+
+                  <div class="prm">
+                    <template data-for="{{fields}}" data-as="f">
+                      <div class="pcard {{f.cardCls}}">
+                        <div class="row" style="gap:8px">
+                          <label for="{{f.id}}">{{f.name}}</label>
+                          <template data-if="{{f.required}}"><span class="req">Required</span></template>
+                        </div>
+                        <template data-if="{{f.description}}">
+                          <p class="hint">{{f.description}}</p>
+                        </template>
+
+                        <template data-if="{{f.isSelect}}">
+                          <select id="{{f.id}}" name="{{f.name}}" onChange="{{f.onChange}}"
+                            aria-invalid="{{f.invalid}}" aria-describedby="{{f.errorId}}">
+                            <template data-for="{{f.options}}" data-as="o">
+                              <option value="{{o.value}}" selected="{{o.sel}}">{{o.label}}</option>
+                            </template>
+                          </select>
+                        </template>
+                        <template data-if="{{f.isInput}}">
+                          <input id="{{f.id}}" name="{{f.name}}" type="{{f.type}}" inputmode="{{f.inputmode}}"
+                            class="{{f.inputCls}}" placeholder="{{f.placeholder}}" value="{{f.value}}"
+                            required="{{f.required}}" aria-invalid="{{f.invalid}}" aria-describedby="{{f.errorId}}"
+                            onInput="{{f.onInput}}" onChange="{{f.onChange}}" autocomplete="off" spellcheck="false">
+                        </template>
+
+                        <template data-if="{{f.error}}">
+                          <p class="msg-err" id="{{f.errorId}}" role="alert">{{f.error}}</p>
+                        </template>
+
+                        <dl class="meta">
+                          <template data-if="{{f.range}}"><dt>Range</dt><dd>{{f.range}}</dd></template>
+                          <template data-if="{{f.defaultText}}"><dt>Default</dt><dd>{{f.defaultText}}</dd></template>
+                          <template data-if="{{f.unitsOnly}}"><dt>Units</dt><dd>{{f.units}}</dd></template>
+                          <template data-if="{{f.conversion}}"><dt>Converted</dt><dd title="COSMOS applies this to the entered value before sending">{{f.conversion}}</dd></template>
+                        </dl>
+                      </div>
+                    </template>
+                  </div>
+
+                  <div class="row cactions">
+                    <template data-if="{{hasParams}}">
+                      <button class="btn sm" type="button" onClick="{{resetForm}}">Reset to defaults</button>
+                    </template>
+                    <div style="flex:1"></div>
+                    <button class="btn primary" type="submit" disabled title="Sending commands isn't available yet">Send</button>
+                  </div>
+                </form>
+              </template>
+            </section>
           </div>
           </template>
         </main>
@@ -236,6 +415,7 @@
 
   <script src="assets/cos3-runtime.js"></script>
   <script src="assets/api.js"></script>
+  <script src="assets/command-form.js"></script>
   <script src="assets/layout.js"></script>
   <script>
     // Case-insensitive match of a search query against any of the given fields
@@ -258,6 +438,25 @@
       };
     }
 
+    // Re-render after the current event finishes, then put focus (and the cursor) back on
+    // whichever element has it by then, e.g. the field the operator just tabbed to.
+    function rerenderKeepingFocus(update) {
+      setTimeout(() => {
+        const el = document.activeElement;
+        const id = el && el.id;
+        const range = el && el.tagName === 'INPUT' ? [el.selectionStart, el.selectionEnd] : null;
+        update();
+        const next = id && document.getElementById(id);
+        if (!next) return;
+        next.focus();
+        if (range && next.setSelectionRange) {
+          try { next.setSelectionRange(range[0], range[1]); } catch (e) { /* not a text input */ }
+        }
+      }, 0);
+    }
+
+    const EMPTY_FORM = {cmdSel: null, def: null, defLoading: false, defError: null, fieldErrors: {}, formStatus: null};
+
     class Component extends DCLogic {
       constructor(props) {
         super(props);
@@ -266,9 +465,17 @@
           loginError: null, loggingIn: false,
           loading: true, error: null, spacecraft: null, sel: null,
           path: 'DEBUG',
-          cmds: null, cmdLoading: false, cmdError: null, cmdSel: null,
-          compQuery: '', cmdQuery: ''
+          cmds: null, cmdLoading: false, cmdError: null,
+          compQuery: '', cmdQuery: '',
+          ...EMPTY_FORM
         };
+        // Parameter values typed so far, by name. Kept outside state: typing must not re-render
+        // the page (cos3-runtime rebuilds the DOM, which would reset the input being typed in).
+        this.formValues = {};
+        // Fields the operator has left at least once: only their errors are shown
+        this.touched = new Set();
+        // Bumped on every validation request, so a slow reply can't overwrite a newer one
+        this.validationSeq = 0;
         this.searchComps = searchHandler(this, 'compQuery');
         this.searchCmds = searchHandler(this, 'cmdQuery');
       }
@@ -285,7 +492,10 @@
 
       // Back to the login view, e.g. when COSMOS rejects the session (expired, or COSMOS restarted)
       logout(message) {
-        this.setState({auth: 'out', loginError: message, sel: null, cmds: null, cmdSel: null, cmdError: null});
+        this.formValues = {};
+        this.touched = new Set();
+        this.validationSeq++;
+        this.setState({auth: 'out', loginError: message, sel: null, cmds: null, cmdError: null, ...EMPTY_FORM});
       }
 
       async login(event) {
@@ -318,7 +528,10 @@
       async loadCommands() {
         const {sel, path} = this.state;
         if (!sel) return;
-        this.setState({cmds: null, cmdLoading: true, cmdError: null, cmdSel: null});
+        this.formValues = {};
+        this.touched = new Set();
+        this.validationSeq++;
+        this.setState({cmds: null, cmdLoading: true, cmdError: null, ...EMPTY_FORM});
         const res = await COS3.api.commands(sel, path);
         if (sel !== this.state.sel || path !== this.state.path) return; // selection changed while loading
         if (res.status === 401) {
@@ -333,6 +546,73 @@
           cmds: res.commands,
           cmdError: res.commands.length ? null : 'This component has no commands.'
         });
+      }
+
+      // Load one command's details and start each parameter at its default
+      async loadCommand(cmd) {
+        const id = `${cmd.target} ${cmd.name}`;
+        if (id === this.state.cmdSel && (this.state.def || this.state.defLoading)) return;
+        this.formValues = {};
+        this.touched = new Set();
+        this.validationSeq++;
+        this.setState({...EMPTY_FORM, cmdSel: id, defLoading: true});
+        const res = await COS3.api.command(cmd.target, cmd.name);
+        if (id !== this.state.cmdSel) return; // another command was picked while loading
+        if (res.status === 401) {
+          this.setState({defLoading: false});
+          return this.logout('Your COSMOS session ended. Log in again.');
+        }
+        if (res.error) return this.setState({defLoading: false, defError: res.error});
+        this.formValues = COS3.commandForm.defaults(res);
+        this.setState({defLoading: false, def: res});
+      }
+
+      // Ask the server (commands/validation.py) to check the current values. Errors are shown
+      // only for fields in `this.touched`. Resolves to the number of errors shown, or null if
+      // the reply was stale or the check failed.
+      async validateForm() {
+        const def = this.state.def;
+        if (!def) return null;
+        const seq = ++this.validationSeq;
+        const res = await COS3.api.validateCommand(def.target, def.name, {...this.formValues});
+        if (seq !== this.validationSeq || def !== this.state.def) return null; // a newer check or command
+        if (res.status === 401) {
+          this.logout('Your COSMOS session ended. Log in again.');
+          return null;
+        }
+        if (res.error) {
+          rerenderKeepingFocus(() => this.setState({formStatus: `Couldn't check the values: ${res.error}`}));
+          return null;
+        }
+        const fieldErrors = Object.fromEntries(
+          Object.entries(res.errors).filter(([name]) => this.touched.has(name)));
+        const unchanged = JSON.stringify(fieldErrors) === JSON.stringify(this.state.fieldErrors);
+        if (!unchanged || this.state.formStatus) {
+          rerenderKeepingFocus(() => this.setState({fieldErrors, formStatus: null}));
+        }
+        return Object.keys(fieldErrors).length;
+      }
+
+      // The operator left a field (or picked a state): check it on the server
+      fieldChanged(param, value) {
+        this.formValues[param.name] = value;
+        this.touched.add(param.name);
+        this.validateForm();
+      }
+
+      resetForm() {
+        this.formValues = COS3.commandForm.defaults(this.state.def);
+        this.touched = new Set();
+        this.validationSeq++; // ignore any check still in flight
+        this.setState({fieldErrors: {}, formStatus: 'Reset to defaults.'});
+      }
+
+      // Runs when sending is enabled (next ticket): check every field first
+      async submitForm(event) {
+        event.preventDefault();
+        this.state.def.parameters.forEach((p) => this.touched.add(p.name));
+        const n = await this.validateForm();
+        if (n) this.setState({formStatus: `Fix ${n} field${n === 1 ? '' : 's'} before sending.`});
       }
 
       renderVals() {
@@ -357,8 +637,21 @@
           description: c.description,
           hazardous: c.hazardous,
           cls: `${c.target} ${c.name}` === s.cmdSel ? 'on' : '',
-          pick: () => this.setState({cmdSel: `${c.target} ${c.name}`})
+          pick: () => this.loadCommand(c)
         }));
+
+        const def = s.def;
+        const params = def ? def.parameters : [];
+        const fields = params.map((p) => {
+          const f = COS3.commandForm.toField(p, this.formValues[p.name], s.fieldErrors[p.name]);
+          return Object.assign(f, {
+            cardCls: f.error ? 'bad' : '',
+            inputCls: f.mono ? 'mono' : '',
+            unitsOnly: !f.range && !!f.units,
+            onInput: (e) => { this.formValues[p.name] = e.target.value; },
+            onChange: (e) => this.fieldChanged(p, e.target.value)
+          });
+        });
 
         const setPath = (path) => () => {
           if (path === s.path) return;
@@ -392,7 +685,23 @@
           cmdError: s.cmdError,
           isDebug: s.path === 'DEBUG', isRadio: s.path === 'RADIO',
           debugCls: s.path === 'DEBUG' ? 'on' : '', radioCls: s.path === 'RADIO' ? 'on' : '',
-          toDebug: setPath('DEBUG'), toRadio: setPath('RADIO')
+          toDebug: setPath('DEBUG'), toRadio: setPath('RADIO'),
+
+          noCommand: !s.cmdSel,
+          defLoading: s.defLoading,
+          defError: s.defError,
+          def,
+          pathLabel: def && def.target.endsWith('_RADIO') ? 'Radio' : 'Debug',
+          hazardText: def && def.hazardous_description
+            ? def.hazardous_description
+            : 'Sending it will need an explicit confirmation.',
+          paramSummary: def ? COS3.commandForm.summary(def) : '',
+          noParams: !!def && params.length === 0,
+          hasParams: params.length > 0,
+          fields,
+          formStatus: s.formStatus,
+          resetForm: () => this.resetForm(),
+          submitForm: (e) => this.submitForm(e)
         };
       }
     }

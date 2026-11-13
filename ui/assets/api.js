@@ -74,6 +74,15 @@
     // path: 'DEBUG' or 'RADIO'. Resolves to { error, status } on failure (status 401 = log in to COSMOS).
     commands: (componentKey, path) =>
       apiWithStatus('GET', `/api/components/${encodeURIComponent(componentKey)}/commands?path=${encodeURIComponent(path)}`),
+    // One command: { target, name, description, hazardous, hazardous_description, parameters: [{ name,
+    // data_type, bit_size, minimum, maximum, default, units, description, states, hazardous_states,
+    // required, conversion }] }, or { error, status }
+    command: (target, name) =>
+      apiWithStatus('GET', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}`),
+    // Check parameter values on the server (commands/validation.py) without sending:
+    // { errors: { name: message } } ({} = all valid), or { error, status }
+    validateCommand: (target, name, values) =>
+      apiWithStatus('POST', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}/validate`, { values }),
     // Whether the server has a COSMOS session: { loggedIn }, or { error, status }
     session: () => apiWithStatus('GET', '/api/session'),
     // Log in to COSMOS: resolves to { loggedIn: true } or { error, status }
