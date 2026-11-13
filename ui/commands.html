@@ -220,6 +220,56 @@
       overflow-wrap: anywhere
     }
 
+    /* Hazardous-command confirmation banner */
+    .confirm {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    /* Sent commands */
+    .hist {
+      height: 250px;
+      flex: none
+    }
+
+    .hist-scroll {
+      overflow: auto;
+      min-height: 0;
+      flex: 1
+    }
+
+    .hist-scroll thead th {
+      position: sticky;
+      top: 0
+    }
+
+    .stat {
+      font: 600 11px 'IBM Plex Mono', monospace;
+      border: 1.5px solid #222;
+      padding: 1px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      white-space: nowrap
+    }
+
+    .stat.sent {
+      background: #222;
+      color: #fff
+    }
+
+    .stat.rejected {
+      border-style: dashed;
+      border-color: #b00020;
+      color: #b00020
+    }
+
+    .stat.failed {
+      border-color: #b00020;
+      background: #b00020;
+      color: #fff
+    }
+
     .cactions {
       gap: 12px;
       padding-top: 12px;
@@ -275,6 +325,17 @@
           </template>
 
           <template data-if="{{loggedIn}}">
+          <template data-if="{{confirm}}">
+            <div class="hazard confirm" role="alertdialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+              <div style="flex:1;min-width:0">
+                <strong id="confirm-title">Confirm hazardous command: {{confirm.label}}</strong>
+                <div id="confirm-text">{{confirm.reason}}</div>
+              </div>
+              <button class="btn sm" type="button" onClick="{{cancelConfirm}}">Cancel</button>
+              <button class="btn sm primary" type="button" onClick="{{acceptConfirm}}" disabled="{{busy}}">Send anyway</button>
+            </div>
+          </template>
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:16px">
           <div style="flex:1;min-height:0;display:flex;gap:16px">
             <section class="pnl" style="width:250px;flex:none" aria-label="Enabled components">
               <div style="font-weight:600">Components</div>
@@ -401,11 +462,60 @@
                       <button class="btn sm" type="button" onClick="{{resetForm}}">Reset to defaults</button>
                     </template>
                     <div style="flex:1"></div>
-                    <button class="btn primary" type="submit" disabled title="Sending commands isn't available yet">Send</button>
+                    <template data-if="{{formStatus}}">
+                      <span class="hint" role="status">{{formStatus}}</span>
+                    </template>
+                    <button class="btn primary" type="submit" disabled="{{busy}}">{{sendLabel}}</button>
                   </div>
                 </form>
               </template>
             </section>
+          </div>
+
+          <section class="pnl hist" aria-label="Sent commands">
+            <div class="row" style="gap:10px">
+              <span style="font-weight:600">Sent commands</span>
+              <span class="hint">{{histCount}}</span>
+              <div style="flex:1"></div>
+              <button class="btn sm" type="button" onClick="{{refreshHistory}}">Refresh</button>
+            </div>
+            <template data-if="{{histError}}">
+              <p role="alert" class="msg-err">{{histError}}</p>
+            </template>
+            <template data-if="{{histEmpty}}">
+              <p class="hint">No commands sent yet.</p>
+            </template>
+            <template data-if="{{hasHistory}}">
+              <div class="hist-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Time</th><th>Command</th><th>Path</th><th>Parameters</th><th>Status</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    <template data-for="{{hist}}" data-as="r">
+                      <tr>
+                        <td class="mono" title="{{r.fullTime}}">{{r.time}}</td>
+                        <td>
+                          <div class="mono">{{r.name}}</div>
+                          <div class="hint" style="font-size:11px">{{r.target}}{{r.resendNote}}</div>
+                        </td>
+                        <td>{{r.path}}</td>
+                        <td class="mono" style="font-size:12px;overflow-wrap:anywhere">{{r.values}}</td>
+                        <td>
+                          <span class="stat {{r.status}}">{{r.statusLabel}}</span>
+                          <template data-if="{{r.error}}"><div class="msg-err" style="font-size:12px;margin-top:4px">{{r.error}}</div></template>
+                        </td>
+                        <td style="text-align:right">
+                          <button class="btn sm" type="button" onClick="{{r.resend}}" disabled="{{busy}}"
+                            aria-label="Resend {{r.name}}">Resend</button>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+          </section>
           </div>
           </template>
         </main>
@@ -457,6 +567,36 @@
 
     const EMPTY_FORM = {cmdSel: null, def: null, defLoading: false, defError: null, fieldErrors: {}, formStatus: null};
 
+    // What to tell the operator after a send, by record status (see commands/history.py)
+    const SEND_RESULT = {
+      sent: (r) => `Sent ${r.name}.`,
+      rejected: (r) => `COSMOS rejected ${r.name}: ${r.error}`,
+      failed: (r) => r.error
+    };
+    const STATUS_LABELS = {sent: 'Sent', rejected: 'Rejected', failed: 'Failed'};
+
+    // A history record -> the values its table row shows
+    function historyRow(r, resend) {
+      const when = new Date(r.time);
+      const values = Object.entries(r.values || {}).map(([k, v]) => `${k}=${v}`).join(', ');
+      const notes = [r.resend_of ? `resend of #${r.resend_of}` : '', r.hazardous_confirmed ? 'hazard confirmed' : '']
+        .filter(Boolean).join(' · ');
+      return {
+        id: r.id,
+        time: when.toLocaleTimeString(),
+        fullTime: when.toLocaleString(),
+        name: r.name,
+        target: r.target,
+        resendNote: notes ? ` · ${notes}` : '',
+        path: r.path === 'RADIO' ? 'Radio' : 'Debug',
+        values: values || 'defaults',
+        status: r.status,
+        statusLabel: STATUS_LABELS[r.status] || r.status,
+        error: r.error,
+        resend
+      };
+    }
+
     class Component extends DCLogic {
       constructor(props) {
         super(props);
@@ -467,7 +607,10 @@
           path: 'DEBUG',
           cmds: null, cmdLoading: false, cmdError: null,
           compQuery: '', cmdQuery: '',
-          ...EMPTY_FORM
+          ...EMPTY_FORM,
+          busy: false, // a send or resend is in progress
+          confirm: null, // {label, reason, accept}: a hazardous command waiting for the operator
+          hist: [], histLoaded: false, histError: null, histStatus: null
         };
         // Parameter values typed so far, by name. Kept outside state: typing must not re-render
         // the page (cos3-runtime rebuilds the DOM, which would reset the input being typed in).
@@ -485,6 +628,7 @@
         if (res.loggedIn) {
           this.setState({auth: 'in'});
           this.loadComponents();
+          this.loadHistory();
         } else {
           this.setState({auth: 'out', loginError: res.error || null});
         }
@@ -506,6 +650,71 @@
         if (res.error) return this.setState({loggingIn: false, loginError: res.error});
         this.setState({loggingIn: false, auth: 'in'});
         this.loadComponents();
+        this.loadHistory();
+      }
+
+      async loadHistory() {
+        const res = await COS3.api.history();
+        if (res.status === 401) return this.logout('Your COSMOS session ended. Log in again.');
+        if (res.error) return this.setState({histError: res.error});
+        this.setState({hist: res.commands, histLoaded: true, histError: null});
+      }
+
+      // Send (or resend) through `request(confirmHazardous)`, which returns the API's answer.
+      // `report(message)` shows progress and the outcome where the operator is looking.
+      // A hazardous command stops at a confirmation banner; "Send anyway" repeats the request
+      // with confirmHazardous = true. Resolves to the API's answer, or null if it went no further.
+      async runSend(label, request, report, confirmHazardous = false) {
+        this.setState({busy: true, confirm: null});
+        report('Sending…');
+        const res = await request(confirmHazardous);
+        this.setState({busy: false});
+
+        if (res.status === 401) {
+          this.logout('Your COSMOS session ended. Log in again.');
+          return null;
+        }
+        if (res.status === 409 && res.confirm) {
+          report('Waiting for confirmation.');
+          this.setState({
+            confirm: {label, reason: res.confirm, accept: () => this.runSend(label, request, report, true)}
+          });
+          return null;
+        }
+        if (res.record) {
+          this.setState({hist: [res.record, ...this.state.hist.filter((r) => r.id !== res.record.id)], histLoaded: true});
+          report(SEND_RESULT[res.record.status] ? SEND_RESULT[res.record.status](res.record) : res.record.status);
+          return res;
+        }
+        report(res.error);
+        return res;
+      }
+
+      cancelConfirm() {
+        this.setState({confirm: null, formStatus: this.state.def ? 'Not sent.' : null, histStatus: null});
+      }
+
+      // Send the selected command with the form's values (the server validates them)
+      async sendForm() {
+        const def = this.state.def;
+        def.parameters.forEach((p) => this.touched.add(p.name));
+        this.validationSeq++; // the send answers with any field errors itself
+        const values = {...this.formValues};
+        const report = (message) => { if (def === this.state.def) this.setState({formStatus: message}); };
+        const res = await this.runSend(def.name, (confirm) => COS3.api.sendCommand(def.target, def.name, values, confirm), report);
+        if (!res || def !== this.state.def) return;
+        if (res.errors) {
+          const n = Object.keys(res.errors).length;
+          this.setState({fieldErrors: res.errors, formStatus: `Fix ${n} field${n === 1 ? '' : 's'} before sending.`});
+        } else if (res.record) {
+          this.setState({fieldErrors: {}});
+        }
+      }
+
+      // Send a command from the history again, with the same values
+      resend(record) {
+        const report = (message) => this.setState({histStatus: message});
+        this.runSend(record.name, (confirm) => COS3.api.resend(record.id, confirm), report);
       }
 
       async loadComponents() {
@@ -607,12 +816,9 @@
         this.setState({fieldErrors: {}, formStatus: 'Reset to defaults.'});
       }
 
-      // Runs when sending is enabled (next ticket): check every field first
-      async submitForm(event) {
+      submitForm(event) {
         event.preventDefault();
-        this.state.def.parameters.forEach((p) => this.touched.add(p.name));
-        const n = await this.validateForm();
-        if (n) this.setState({formStatus: `Fix ${n} field${n === 1 ? '' : 's'} before sending.`});
+        if (!this.state.busy) this.sendForm();
       }
 
       renderVals() {
@@ -701,7 +907,20 @@
           fields,
           formStatus: s.formStatus,
           resetForm: () => this.resetForm(),
-          submitForm: (e) => this.submitForm(e)
+          submitForm: (e) => this.submitForm(e),
+          busy: s.busy,
+          sendLabel: s.busy ? 'Sending…' : 'Send',
+
+          confirm: s.confirm,
+          cancelConfirm: () => this.cancelConfirm(),
+          acceptConfirm: () => s.confirm && s.confirm.accept(),
+
+          hist: s.hist.map((r) => historyRow(r, () => this.resend(r))),
+          hasHistory: s.hist.length > 0,
+          histEmpty: s.histLoaded && s.hist.length === 0,
+          histCount: s.histStatus || (s.hist.length ? `${s.hist.length} this session` : ''),
+          histError: s.histError,
+          refreshHistory: () => this.loadHistory()
         };
       }
     }

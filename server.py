@@ -16,6 +16,12 @@ API (requires the `X-COS3: 1` header):
     POST /api/commands/{target}/{name}/validate
                               body {"values": {name: value}} -> {"errors": {name: message}}
                               (commands/validation.py is the only place parameters are checked)
+    POST /api/commands/{target}/{name}
+                              send: body {"values", "confirmHazardous"} -> {"record"} (its "status" is
+                              sent | rejected | failed), 400 {"errors"}, or 409 {"confirm": reason}
+    GET  /api/history         {"commands": [record, ...]}, newest first
+    POST /api/history/{id}/resend
+                              body {"confirmHazardous"}: send a recorded command again (same answers as send)
     POST /api/launch   start the container and NOS3: default configuration, or a custom one
                        with body {"values": {"startUtc", "durationS", "components"}}
     POST /api/stop     stop NOS3 and the container
@@ -37,6 +43,8 @@ from default_config import ConfigError, load_default_config
 from launcher import launcher
 from commands.targets import CommandPath, UnknownComponent, component_for
 from commands.command_catalog import CommandCatalog, UnknownCommand
+from commands.history import CommandHistory, UnknownRecord
+from commands.sender import CommandSender, ConfirmationRequired, ValidationFailed
 from commands.validation import validate
 
 ROOT_DIR = Path(__file__).resolve().parent
@@ -50,11 +58,14 @@ MAX_BODY_BYTES = 64 * 1024
 
 cosmos = CosmosJSONAPIClient()
 catalog = CommandCatalog(cosmos)
+history = CommandHistory()
+sender = CommandSender(cosmos, catalog, history)
 
 # Routes with path parameters
 COMPONENT_COMMANDS = re.compile(r"^/api/components/(?P<key>[a-z0-9_]+)/commands$")
 COMMAND = re.compile(r"^/api/commands/(?P<target>[A-Z0-9_]+)/(?P<name>[A-Z0-9_]+)$")
 COMMAND_VALIDATE = re.compile(r"^/api/commands/(?P<target>[A-Z0-9_]+)/(?P<name>[A-Z0-9_]+)/validate$")
+RESEND = re.compile(r"^/api/history/(?P<id>\d+)/resend$")
 
 
 def enabled_component_keys():
@@ -85,6 +96,8 @@ class Handler(SimpleHTTPRequestHandler):
 
         if path == "/api/status":
             self._send_json(200, launcher.status())
+        elif path == "/api/history":
+            self._send_json(200, {"commands": [r.to_dict() for r in history.list()]})
         elif path == "/api/session":
             self._send_json(200, {"loggedIn": cosmos.authenticated})
         elif path == "/api/config/default":
@@ -128,6 +141,49 @@ class Handler(SimpleHTTPRequestHandler):
             return
         _, errors = validate(definition, values)
         self._send_json(200, {"errors": errors})
+
+    def _send_command(self, target, name):
+        """POST /api/commands/{target}/{name}: validate, confirm hazards, send, record."""
+        try:
+            body = self._read_json()
+        except ValueError as err:
+            return self._send_json(400, {"error": str(err)})
+        values = body.get("values", {})
+        if not isinstance(values, dict):
+            return self._send_json(400, {"error": "values must be an object."})
+        if self._find_command(target, name) is None:  # also checks the component is enabled
+            return
+        self._run_send(lambda confirm: sender.send(target, name, values, confirm), body)
+
+    def _resend(self, record_id):
+        """POST /api/history/{id}/resend: send a recorded command again, if its component is still enabled."""
+        try:
+            body = self._read_json()
+            previous = history.get(record_id)
+        except ValueError as err:
+            return self._send_json(400, {"error": str(err)})
+        except UnknownRecord:
+            return self._send_json(404, {"error": f"No command #{record_id} in the history."})
+        key = component_for(previous.target)
+        if key is None:
+            return self._send_json(404, {"error": f"Unknown target {previous.target}."})
+        if not self._component_enabled(key):
+            return
+        self._run_send(lambda confirm: sender.resend(record_id, confirm), body)
+
+    def _run_send(self, send, body):
+        """Run a send or resend and map its outcome to a response."""
+        try:
+            record = send(body.get("confirmHazardous") is True)
+        except ValidationFailed as err:
+            return self._send_json(400, {"error": str(err), "errors": err.errors})
+        except ConfirmationRequired as err:
+            return self._send_json(409, {"confirm": err.reason})
+        except UnknownCommand as err:
+            return self._send_json(404, {"error": f"Unknown command {err}."})
+        except CosmosError as err:
+            return self._send_cosmos_error(err)
+        self._send_json(200, {"record": record.to_dict()})
 
     def _find_command(self, target, name):
         """The command's definition if its component is enabled; otherwise sends an error and returns None."""
@@ -206,6 +262,10 @@ class Handler(SimpleHTTPRequestHandler):
             return self._send_noop()
         if match := COMMAND_VALIDATE.match(path):
             return self._validate_command(match["target"], match["name"])
+        if match := COMMAND.match(path):
+            return self._send_command(match["target"], match["name"])
+        if match := RESEND.match(path):
+            return self._resend(int(match["id"]))
 
         if path == "/api/launch":
             # Optional body {"values": {...}} for a custom configuration; no body = default

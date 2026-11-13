@@ -34,6 +34,15 @@ class HazardousCommand(CosmosRejected):
     """The command is hazardous and was sent without the no-hazardous-check variant."""
 
 
+def _json_rpc_error_body(http_error):
+    """The response body if it's a JSON-RPC error, else None."""
+    try:
+        text = http_error.read().decode()
+        return text if "error" in json.loads(text) else None
+    except (OSError, ValueError, TypeError):
+        return None
+
+
 class CosmosJSONAPIClient:
     def __init__(self, api_url=COSMOS_API_URL, auth_url=AUTH_URL, timeout=TIMEOUT_S):
         self._api_url = api_url
@@ -101,8 +110,14 @@ class CosmosJSONAPIClient:
         """One command definition."""
         return self.call("get_cmd", target, name)
 
-    def send_command(self, target, name, params=None):
-        return self.call("cmd", target, name, params or {})
+    def send_command(self, target, name, params=None, hazardous_confirmed=False):
+        """Send a command with COSMOS's structured form: cmd(target, name, {param: value}).
+
+        hazardous_confirmed=True uses cmd_no_hazardous_check; only pass it after the
+        operator explicitly confirmed. Raises HazardousCommand otherwise for hazardous commands.
+        """
+        method = "cmd_no_hazardous_check" if hazardous_confirmed else "cmd"
+        return self.call(method, target, name, params or {})
 
     # HTTP Methods
 
@@ -119,6 +134,12 @@ class CosmosJSONAPIClient:
                     self._token = None 
                 raise NotAuthenticated() from err
 
+            # COSMOS answers rejected API calls (out of range, unknown packet, hazardous, ...)
+            # with HTTP 500 and a JSON-RPC error body: hand that to call(), which raises
+            # CosmosRejected / HazardousCommand with COSMOS's own message.
+            body = _json_rpc_error_body(err)
+            if body is not None:
+                return body
             raise CosmosError(f"COSMOS returned HTTP {err.code}.") from err
         except OSError as err:
             raise CosmosUnavailable("Can't reach COSMOS. Is it running?") from err

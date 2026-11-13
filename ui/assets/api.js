@@ -31,7 +31,8 @@
       if (body !== undefined) headers['Content-Type'] = 'application/json';
       const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
       const data = await res.json();
-      return res.ok ? data : { error: data.error || `Request failed (${res.status}).`, status: res.status };
+      // Keep any extra fields (e.g. errors, confirm) so callers can act on them
+      return res.ok ? data : { ...data, error: data.error || `Request failed (${res.status}).`, status: res.status };
     } catch (e) {
       return { error: "Can't reach the UI server.", status: 0 };
     }
@@ -83,6 +84,17 @@
     // { errors: { name: message } } ({} = all valid), or { error, status }
     validateCommand: (target, name, values) =>
       apiWithStatus('POST', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}/validate`, { values }),
+    // Send a command: { record } (record.status: sent | rejected | failed), or on failure
+    // { error, status, errors } (400: invalid values) / { error, status, confirm } (409: hazardous,
+    // send again with confirmHazardous = true)
+    sendCommand: (target, name, values, confirmHazardous = false) =>
+      apiWithStatus('POST', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}`,
+        { values, confirmHazardous }),
+    // Sent commands, newest first: { commands: [record] }, or { error, status }
+    history: () => apiWithStatus('GET', '/api/history'),
+    // Send a recorded command again: same answers as sendCommand
+    resend: (id, confirmHazardous = false) =>
+      apiWithStatus('POST', `/api/history/${encodeURIComponent(id)}/resend`, { confirmHazardous }),
     // Whether the server has a COSMOS session: { loggedIn }, or { error, status }
     session: () => apiWithStatus('GET', '/api/session'),
     // Log in to COSMOS: resolves to { loggedIn: true } or { error, status }
