@@ -14,6 +14,7 @@ COSMOS_URL = os.environ.get("COSMOS_URL", "http://localhost:2900")
 COSMOS_PASSWORD = os.environ.get("COSMOS_PASSWORD", "")
 COSMOS_SCOPE = "DEFAULT"
 LINK = os.environ.get("COSMOS_LINK", "DEBUG")   # Target suffix: DEBUG or RADIO
+TIMEOUT_S = 15                                   # COSMOS can be slow right after a launch
 
 # Items COSMOS adds to every packet; not shown as component data
 HEADER_ITEMS = {
@@ -23,6 +24,7 @@ HEADER_ITEMS = {
 }
 
 _token = None
+_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))   # Never proxy COSMOS
 
 
 # --- COSMOS connection (generic) ---------------------------------------------
@@ -33,7 +35,7 @@ def _post(path, body, headers=None):
         data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json", **(headers or {})},
     )
-    with urllib.request.urlopen(req, timeout=5) as resp:
+    with _opener.open(req, timeout=TIMEOUT_S) as resp:
         return resp.read().decode()
 
 
@@ -60,7 +62,7 @@ def call(method, *params):
             raise
         if "error" in reply:
             msg = reply["error"].get("message", "")
-            if "Password is invalid" in msg and attempt == 0:
+            if ("Password is invalid" in msg or "Token is required" in msg) and attempt == 0:
                 login()
                 continue
             raise RuntimeError(f"COSMOS error in {method}: {msg}")
@@ -104,9 +106,11 @@ def spacecraft_time(seconds, subsecs):
         return None
     return seconds + (subsecs or 0) / 65536
 
+
 def _round(x, digits):
     """Round numbers for display; leave text, None and other values unchanged."""
     return round(x, digits) if isinstance(x, float) else x
+
 
 def get_component(key):
     """One request to COSMOS for a component, in the shape the Telemetry page displays."""
@@ -146,6 +150,8 @@ def get_component(key):
         "spacecraft_time": _round(sc, 3),
         "last_update": time_fmt,
         "rows": rows,
+        # Every item of the packet as [name, value], like COSMOS Packet Viewer
+        "all_items": [[name, value] for name, value, _limit in packet],
     }
 
 
@@ -158,13 +164,14 @@ COMPONENTS = {
         items=[Item(f"RAW_CSS_{i}", units="V", convert=scale(0.001), level_max=5.0)
                for i in range(6)],
     ),
-    # Example: no items listed, so every data item is shown as received.
-    # Check the packet name with get_all_tlm_names before relying on it.
+    # Housekeeping: no items listed, so every data item is passed through as-is
+    "css_hk": Component(target="GENERIC_CSS", packet="GENERIC_CSS_HK_TLM"),
+    # Example: check the packet name with get_all_tlm_names before relying on it
     "fss": Component(target="GENERIC_FSS", packet="GENERIC_FSS_DATA_TLM"),
 }
 
 
 if __name__ == "__main__":
-    # Terminal test: python3 cosmos_telemetry.py css
+    # Terminal test: python3 cosmos_telemetry.py css   (or css_hk, fss)
     import sys
     print(json.dumps(get_component(sys.argv[1] if len(sys.argv) > 1 else "css"), indent=2))

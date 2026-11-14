@@ -1,61 +1,77 @@
 /* CSS charts for the Telemetry page.
- * Two live line charts (raw counts, converted volts), each with an item dropdown,
- * a full screen button and a hover tracker.
+ * Two live line charts (raw counts, converted volts) of the selected CSS item,
+ * with an Expand view and a hover tracker. The item is chosen by clicking a table row.
  *
  * Use from a page:
  *   <script src="assets/css-charts.js"></script>
  *   CssCharts.init()            once, after COS3.mount(...)
  *   CssCharts.addSample(data)   for each /api/telemetry/css reply (or streamed packet)
+ *   CssCharts.select(name)      when the user clicks a row, e.g. 'RAW_CSS_2'
  * The page must contain <div id="css-chart-raw"> and <div id="css-chart-value">.
  */
 (function () {
-  const ITEMS = ['RAW_CSS_0', 'RAW_CSS_1', 'RAW_CSS_2', 'RAW_CSS_3', 'RAW_CSS_4', 'RAW_CSS_5'];
   const MAX_POINTS = 600;   // About 10 minutes at 1 packet/s
   const history = [];       // [{ t: ms, raw: {RAW_CSS_0: 845, ...}, value: {RAW_CSS_0: 0.845, ...} }]
   let charts = [];
+  let selected = 'RAW_CSS_0';
+  let overlay = null;
 
   const hms = (t) => new Date(t).toISOString().slice(11, 19);   // UTC hh:mm:ss
 
   // Styles live here so the page doesn't need them
   const style = document.createElement('style');
   style.textContent = `
-    .chart{flex:1;min-width:0}
-    .chart .plot{flex:1;min-height:0;position:relative}
-    .chart canvas{display:block;cursor:crosshair}
-    .chart:fullscreen{width:100vw;height:100vh;padding:24px;background:#fff}`;
+    .chart{flex:1;min-width:0;min-height:0}
+    .chart-head{display:flex;align-items:center;gap:8px;flex:none}
+    .chart-head .h{flex:1;min-width:0}
+    .chart .plot{flex:1;min-height:120px;position:relative;overflow:hidden}
+    .chart canvas{position:absolute;inset:0;display:block;cursor:crosshair}
+    .chart-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);padding:40px;box-sizing:border-box;display:none}
+    .chart-overlay.on{display:flex}
+    .chart-overlay .chart{flex:1}`;
   document.head.appendChild(style);
 
   class LiveChart {
     constructor({ slotId, title, field, units, digits }) {
-      Object.assign(this, { slotId, field, units, digits, item: ITEMS[0], hoverX: null });
+      Object.assign(this, { slotId, title, field, units, digits, hoverX: null, expanded: false });
 
       this.root = document.createElement('section');
       this.root.className = 'pnl chart';
       this.root.innerHTML = `
-        <div class="row" style="gap:8px">
-          <span class="h" style="flex:1">${title}</span>
-          <select aria-label="${title}: item" style="width:130px;height:28px">
-            ${ITEMS.map((n) => `<option>${n}</option>`).join('')}
-          </select>
-          <button class="btn sm" type="button">Full screen</button>
+        <div class="chart-head">
+          <span class="h"></span>
+          <button class="btn sm" type="button">Expand</button>
         </div>
         <div class="plot"><canvas></canvas></div>`;
 
+      this.titleEl = this.root.querySelector('.h');
+      this.btn = this.root.querySelector('button');
       this.canvas = this.root.querySelector('canvas');
-      const select = this.root.querySelector('select');
-      const fsBtn = this.root.querySelector('button');
 
-      select.addEventListener('change', () => { this.item = select.value; this.draw(); });
-      fsBtn.addEventListener('click', () => {
-        if (document.fullscreenElement === this.root) document.exitFullscreen();
-        else this.root.requestFullscreen();
-      });
-      document.addEventListener('fullscreenchange', () => {
-        fsBtn.textContent = document.fullscreenElement === this.root ? 'Exit full screen' : 'Full screen';
-      });
+      this.btn.addEventListener('click', () => (this.expanded ? this.collapse() : this.expand()));
       this.canvas.addEventListener('mousemove', (e) => { this.hoverX = e.offsetX; this.draw(); });
       this.canvas.addEventListener('mouseleave', () => { this.hoverX = null; this.draw(); });
       new ResizeObserver(() => this.draw()).observe(this.root.querySelector('.plot'));
+      this.updateTitle();
+    }
+
+    updateTitle() { this.titleEl.textContent = `${this.title}: ${selected}`; }
+
+    // Expanded view: the chart moves into an overlay outside the page, so page re-renders don't affect it
+    expand() {
+      charts.forEach((c) => c.expanded && c.collapse());
+      this.expanded = true;
+      overlay.appendChild(this.root);
+      overlay.classList.add('on');
+      this.btn.textContent = 'Close';
+      this.draw();
+    }
+
+    collapse() {
+      this.expanded = false;
+      overlay.classList.remove('on');
+      this.btn.textContent = 'Expand';
+      attach();
     }
 
     draw() {
@@ -72,9 +88,9 @@
       g.font = '11px "IBM Plex Mono", monospace';
       g.fillStyle = '#555';
 
-      const pts = history.map((s) => ({ t: s.t, v: s[this.field][this.item] })).filter((p) => p.v != null);
+      const pts = history.map((s) => ({ t: s.t, v: s[this.field][selected] })).filter((p) => p.v != null);
       const L = 56, R = 12, T = 8, B = 22, pw = w - L - R, ph = h - T - B;
-      if (pts.length < 2) { g.fillText('Waiting for data…', L, T + ph / 2); return; }
+      if (pts.length < 2) { g.textAlign = 'left'; g.fillText('Waiting for data…', L, T + ph / 2); return; }
 
       // Scales
       let lo = Math.min(...pts.map((p) => p.v)), hi = Math.max(...pts.map((p) => p.v));
@@ -120,9 +136,10 @@
   }
 
   // The page re-renders, which recreates the chart slots. Move the same chart
-  // elements back in, so the selection, hover and canvas are kept.
+  // elements back in (except an expanded one, which stays in the overlay).
   function attach() {
     charts.forEach((c) => {
+      if (c.expanded) return;
       const slot = document.getElementById(c.slotId);
       if (slot && c.root.parentNode !== slot) { slot.appendChild(c.root); c.draw(); }
     });
@@ -130,12 +147,28 @@
 
   window.CssCharts = {
     init() {
+      overlay = document.createElement('div');
+      overlay.className = 'chart-overlay';
+      overlay.addEventListener('click', (e) => {   // Click on the dark background closes it
+        if (e.target === overlay) charts.forEach((c) => c.expanded && c.collapse());
+      });
+      document.body.appendChild(overlay);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') charts.forEach((c) => c.expanded && c.collapse());
+      });
+
       charts = [
         new LiveChart({ slotId: 'css-chart-raw', title: 'Raw value', field: 'raw', units: 'counts', digits: 0 }),
         new LiveChart({ slotId: 'css-chart-value', title: 'Converted value', field: 'value', units: 'V', digits: 3 })
       ];
       attach();
       new MutationObserver(attach).observe(document.getElementById('app'), { childList: true, subtree: true });
+    },
+
+    // Choose which item both charts plot
+    select(name) {
+      selected = name;
+      charts.forEach((c) => { c.updateTitle(); c.draw(); });
     },
 
     // Add one backend reply (skips a packet that was already added)
