@@ -25,6 +25,8 @@
       if (body !== undefined) headers['Content-Type'] = 'application/json';
       const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
       const data = await res.json();
+      // No COSMOS session (a wrong password on /api/login is also 401): layout.js asks to log in
+      if (res.status === 401 && path !== '/api/login') window.dispatchEvent(new Event('cos3:login-required'));
       // Keep any extra fields (e.g. errors, confirm) so callers can act on them
       return res.ok ? data : { ...data, error: data.error || `Request failed (${res.status}).`, status: res.status };
     } catch (e) {
@@ -93,7 +95,12 @@
     // Whether the server has a COSMOS session: { loggedIn }, or { error, status }
     session: () => request('GET', '/api/session'),
     // Log in to COSMOS: resolves to { loggedIn: true } or { error, status }
-    login: (password) => request('POST', '/api/login', { password }),
+    // Pages listen for 'cos3:logged-in' to reload what needed a session.
+    login: async (password) => {
+      const res = await request('POST', '/api/login', { password });
+      if (!res.error) window.dispatchEvent(new Event('cos3:logged-in'));
+      return res;
+    },
     // values: null for the default configuration, or { startUtc, durationS, components }.
     // Resolves to { error } if the server refuses the values.
     launch: (values) => request('POST', '/api/launch', values ? { values } : undefined),

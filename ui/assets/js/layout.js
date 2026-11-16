@@ -90,7 +90,73 @@
     liveState = st;
     applyStatus(document);
     redirectIfNeeded();
+    checkSession();
   }
+
+  // COSMOS login prompt.
+  let sessionChecked = false;
+  let loginDialog = null;
+
+  function onSimPage() {
+    return liveState === 'running' && currentPage !== null && currentPage !== 'wizard';
+  }
+
+  async function checkSession() {
+    if (sessionChecked || !onSimPage()) return;
+    sessionChecked = true;
+    const res = await COS3.api.session();
+    if (res.loggedIn === false) showLogin();
+  }
+
+  function showLogin() {
+    if (!onSimPage()) return;
+    loginDialog = loginDialog || createLoginDialog();
+    if (!loginDialog.open) loginDialog.showModal();
+  }
+
+  function createLoginDialog() {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'wf login';
+    dialog.setAttribute('aria-labelledby', 'cos3-login-title');
+    dialog.innerHTML = `
+<form>
+  <div id="cos3-login-title" class="login-title">Log in to COSMOS</div>
+  <p class="login-hint">Telemetry and commands need a COSMOS session.</p>
+  <label for="cos3-cosmos-password">COSMOS password</label>
+  <input id="cos3-cosmos-password" type="password" autocomplete="current-password" required>
+  <p role="alert" class="login-err" data-login-error></p>
+  <p class="login-hint">First time? <a href="${COS3.api.COSMOS_URL}" target="_blank" rel="noopener">Open COSMOS</a>
+    to create your account, then come back and log in with that password.</p>
+  <div class="row" style="justify-content:flex-end">
+    <button type="submit" class="btn primary" data-login-submit>Log in</button>
+  </div>
+</form>`;
+    const form = dialog.querySelector('form');
+    const input = dialog.querySelector('input');
+    const error = dialog.querySelector('[data-login-error]');
+    const submit = dialog.querySelector('[data-login-submit]');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submit.disabled = true;
+      error.textContent = '';
+      const res = await COS3.api.login(input.value);
+      submit.disabled = false;
+      if (res.error) {
+        error.textContent = res.error;
+        input.select();
+        return;
+      }
+      input.value = '';
+      dialog.close();
+    });
+    // Esc would close the dialog: keep it open until the operator logs in
+    dialog.addEventListener('cancel', (e) => e.preventDefault());
+    document.body.appendChild(dialog);
+    return dialog;
+  }
+
+  window.addEventListener('cos3:login-required', showLogin);
 
   async function pollStatus() {
     // Server not reachable (no state): keep showing the last known state
@@ -153,6 +219,10 @@ ${links}
   window.COS3 = window.COS3 || {};
   window.COS3.layouts = Object.assign(window.COS3.layouts || {}, { header, nav });
   // After each render: the status may have arrived before the page built its sidebar
-  window.COS3.onRender = (window.COS3.onRender || []).concat((root) => { applyStatus(root); redirectIfNeeded(); });
+  window.COS3.onRender = (window.COS3.onRender || []).concat((root) => {
+    applyStatus(root);
+    redirectIfNeeded();
+    checkSession();
+  });
   pollStatus();
 })();

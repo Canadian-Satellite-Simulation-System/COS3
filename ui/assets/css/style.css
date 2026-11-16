@@ -63,6 +63,16 @@ input[type=checkbox]{width:16px;height:16px;margin:0;flex:none}
 .ch{border:1.5px solid #999;border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:6px;background:#fff;cursor:pointer;text-align:left;font:inherit;color:#222}
 .ch.on{border:2.5px solid #222}
 
+/* COSMOS login prompt (layout.js) */
+.login{width:360px;padding:20px;border:1.5px solid #222;border-radius:4px;box-sizing:border-box}
+.login::backdrop{background:rgba(0,0,0,.45)}
+.login form{display:flex;flex-direction:column;gap:10px}
+.login-title{font-weight:600;font-size:16px}
+.login-hint{margin:0;font-size:13px;color:#555}
+.login input[type=password]{height:36px;padding:0 10px;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;font:400 14px 'IBM Plex Sans',sans-serif}
+.login-err{margin:0;font-size:13px;color:#B00}
+.login-err:empty{display:none}
+
 /* Page frame: keeps the 1440 x 900 wireframe centred in the browser window */
 html{background:#D9D9D9}
 html,body{overflow:hidden;height:100%}

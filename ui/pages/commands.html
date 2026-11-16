@@ -291,40 +291,16 @@
           <div class="row" style="gap:12px">
             <h1 style="margin:0;font-size:22px">Commands</h1>
             <div style="flex:1"></div>
-            <template data-if="{{loggedIn}}">
-              <div class="path">
-                <div class="path-switch" role="group" aria-labelledby="path-label">
-                  <button class="seg {{debugCls}}" onClick="{{toDebug}}" aria-pressed="{{isDebug}}"
-                    title="Send straight to the flight software (DEBUG interface)">Debug</button>
-                  <button class="seg {{radioCls}}" onClick="{{toRadio}}" aria-pressed="{{isRadio}}"
-                    title="Send through the simulated radio (RADIO interface)">Radio</button>
-                </div>
+            <div class="path">
+              <div class="path-switch" role="group" aria-labelledby="path-label">
+                <button class="seg {{debugCls}}" onClick="{{toDebug}}" aria-pressed="{{isDebug}}"
+                  title="Send straight to the flight software (DEBUG interface)">Debug</button>
+                <button class="seg {{radioCls}}" onClick="{{toRadio}}" aria-pressed="{{isRadio}}"
+                  title="Send through the simulated radio (RADIO interface)">Radio</button>
               </div>
-            </template>
+            </div>
           </div>
 
-          <template data-if="{{checkingSession}}">
-            <p class="hint">Checking COSMOS session…</p>
-          </template>
-
-          <template data-if="{{loggedOut}}">
-            <div style="flex:1;display:flex;align-items:center;justify-content:center">
-              <form class="pnl" style="width:360px" onSubmit="{{login}}" aria-label="Log in to COSMOS">
-                <div style="font-weight:600;font-size:16px">Log in to COSMOS</div>
-                <p class="hint">Sending commands needs a COSMOS session.</p>
-                <div class="fld">
-                  <label for="cosmos-password">COSMOS password</label>
-                  <input id="cosmos-password" type="password" autocomplete="current-password" required autofocus>
-                </div>
-                <template data-if="{{loginError}}">
-                  <p role="alert" class="msg-err">{{loginError}}</p>
-                </template>
-                <button class="btn" type="submit" disabled="{{loggingIn}}">Log in</button>
-              </form>
-            </div>
-          </template>
-
-          <template data-if="{{loggedIn}}">
           <template data-if="{{confirm}}">
             <div class="hazard confirm" role="alertdialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
               <div style="flex:1;min-width:0">
@@ -511,7 +487,6 @@
             </template>
           </section>
           </div>
-          </template>
         </main>
       </div>
     </div>
@@ -587,8 +562,6 @@
       constructor(props) {
         super(props);
         this.state = {
-          auth: 'checking', 
-          loginError: null, loggingIn: false,
           loading: true, error: null, spacecraft: null, sel: null,
           path: 'DEBUG',
           cmds: null, cmdLoading: false, cmdError: null,
@@ -605,38 +578,14 @@
         this.searchCmds = searchHandler(this, 'cmdQuery');
       }
 
-      async componentDidMount() {
-        const res = await COS3.api.session();
-        if (res.loggedIn) {
-          this.setState({auth: 'in'});
-          this.loadComponents();
-          this.loadHistory();
-        } else {
-          this.setState({auth: 'out', loginError: res.error || null});
-        }
-      }
-
-      logout(message) {
-        this.formValues = {};
-        this.touched = new Set();
-        this.validationSeq++;
-        this.setState({auth: 'out', loginError: message, sel: null, cmds: null, cmdError: null, ...EMPTY_FORM});
-      }
-
-      async login(event) {
-        event.preventDefault();
-        const password = event.target.querySelector('input[type=password]').value;
-        this.setState({loggingIn: true, loginError: null});
-        const res = await COS3.api.login(password);
-        if (res.error) return this.setState({loggingIn: false, loginError: res.error});
-        this.setState({loggingIn: false, auth: 'in'});
+      componentDidMount() {
         this.loadComponents();
         this.loadHistory();
+        window.addEventListener('cos3:logged-in', () => this.loadCommands());
       }
 
       async loadHistory() {
         const res = await COS3.api.history();
-        if (res.status === 401) return this.logout('Your COSMOS session ended. Log in again.');
         if (res.error) return this.setState({histError: res.error});
         this.setState({hist: res.commands, histLoaded: true, histError: null});
       }
@@ -647,10 +596,6 @@
         const res = await request(confirmHazardous);
         this.setState({busy: false});
 
-        if (res.status === 401) {
-          this.logout('Your COSMOS session ended. Log in again.');
-          return null;
-        }
         if (res.status === 409 && res.confirm) {
           report('Waiting for confirmation.');
           this.setState({
@@ -720,10 +665,6 @@
         this.setState({cmds: null, cmdLoading: true, cmdError: null, ...EMPTY_FORM});
         const res = await COS3.api.commands(sel, path);
         if (sel !== this.state.sel || path !== this.state.path) return; // selection changed while loading
-        if (res.status === 401) {
-          this.setState({cmdLoading: false});
-          return this.logout('Your COSMOS session ended. Log in again.');
-        }
         if (res.error) {
           return this.setState({cmdLoading: false, cmdError: res.error});
         }
@@ -744,10 +685,6 @@
         this.setState({...EMPTY_FORM, cmdSel: id, defLoading: true});
         const res = await COS3.api.command(cmd.target, cmd.name);
         if (id !== this.state.cmdSel) return; // another command was picked while loading
-        if (res.status === 401) {
-          this.setState({defLoading: false});
-          return this.logout('Your COSMOS session ended. Log in again.');
-        }
         if (res.error) return this.setState({defLoading: false, defError: res.error});
         this.formValues = COS3.commandForm.defaults(res);
         this.setState({defLoading: false, def: res});
@@ -762,10 +699,6 @@
         const seq = ++this.validationSeq;
         const res = await COS3.api.validateCommand(def.target, def.name, {...this.formValues});
         if (seq !== this.validationSeq || def !== this.state.def) return null; // a newer check or command
-        if (res.status === 401) {
-          this.logout('Your COSMOS session ended. Log in again.');
-          return null;
-        }
         if (res.error) {
           rerenderKeepingFocus(() => this.setState({formStatus: `Couldn't check the values: ${res.error}`}));
           return null;
@@ -844,13 +777,6 @@
         };
 
         return {
-          checkingSession: s.auth === 'checking',
-          loggedOut: s.auth === 'out',
-          loggedIn: s.auth === 'in',
-          loginError: s.loginError,
-          loggingIn: s.loggingIn,
-          login: (e) => this.login(e),
-
           loading: s.loading,
           error: s.error,
           comps,
