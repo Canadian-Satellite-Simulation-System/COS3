@@ -11,6 +11,8 @@ from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 
+from commands.targets import component_for
+
 LIMIT = 500
 
 
@@ -38,7 +40,8 @@ class CommandRecord:
     resend_of: int = None  # id of the record this one re-sent
 
     def to_dict(self):
-        return asdict(self)
+        # component: the key of the component that owns the target (None if unknown), so the UI can show its name
+        return {**asdict(self), "component": component_for(self.target)}
 
 
 class CommandHistory:
