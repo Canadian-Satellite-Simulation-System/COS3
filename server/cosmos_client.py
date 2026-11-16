@@ -4,10 +4,26 @@ import threading
 import urllib.error
 import urllib.request
 
-from server.settings import COSMOS_API_URL, COSMOS_URL, TIMEOUT_S
+from server.settings import (
+    COSMOS_API_TIMEOUT_S,
+    COSMOS_API_URL,
+    COSMOS_AUTH_URL,
+    COSMOS_PING_TIMEOUT_S,
+    COSMOS_SCOPE,
+    COSMOS_URL,
+)
 
-AUTH_URL = COSMOS_URL + "/openc3-api/auth/verify"
-SCOPE = "DEFAULT"
+# COSMOS is on localhost: never go through an HTTP proxy
+_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def cosmos_up(timeout=COSMOS_PING_TIMEOUT_S):
+    """Whether COSMOS answers at COSMOS_URL (no login needed)."""
+    try:
+        with _opener.open(COSMOS_URL, timeout=timeout) as res:
+            return res.status < 400
+    except OSError:
+        return False
 
 
 class CosmosError(Exception):
@@ -44,14 +60,13 @@ def _json_rpc_error_body(http_error):
 
 
 class CosmosJSONAPIClient:
-    def __init__(self, api_url=COSMOS_API_URL, auth_url=AUTH_URL, timeout=TIMEOUT_S):
+    def __init__(self, api_url=COSMOS_API_URL, auth_url=COSMOS_AUTH_URL, timeout=COSMOS_API_TIMEOUT_S):
         self._api_url = api_url
         self._auth_url = auth_url
         self._timeout = timeout
         self._token = None
         self._lock = threading.Lock()
         self._ids = itertools.count(1)
-        self._opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
     # Session:
 
@@ -80,7 +95,7 @@ class CosmosJSONAPIClient:
             "jsonrpc": "2.0",
             "method": method,
             "params": list(params),
-            "keyword_params": {"scope": SCOPE, **keyword_params},
+            "keyword_params": {"scope": COSMOS_SCOPE, **keyword_params},
             "id": next(self._ids),
         }
         reply = json.loads(self._post(
@@ -115,13 +130,17 @@ class CosmosJSONAPIClient:
         method = "cmd_no_hazardous_check" if hazardous_confirmed else "cmd"
         return self.call(method, target, name, params or {})
 
+    def get_tlm_packet(self, target, packet):
+        """Latest values of a telemetry packet: [[item name, value, limits state], ...]."""
+        return self.call("get_tlm_packet", target, packet)
+
     # HTTP Methods
 
     def _post(self, url, body, headers):
         """POST JSON, return the response text. Maps transport failures to CosmosError types."""
         request = urllib.request.Request(url, data=json.dumps(body).encode(), headers=headers, method="POST")
         try:
-            with self._opener.open(request, timeout=self._timeout) as res:
+            with _opener.open(request, timeout=self._timeout) as res:
                 return res.read().decode()
 
         except urllib.error.HTTPError as err:

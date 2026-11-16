@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class CommandPath(str, Enum):
-    """How a command reaches the flight software."""
+    """How commands and telemetry travel between COSMOS and the flight software."""
     DEBUG = "DEBUG"
     RADIO = "RADIO"
 

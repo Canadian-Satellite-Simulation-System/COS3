@@ -67,7 +67,7 @@ class ConfigError(Exception):
     """A default configuration file is missing or unreadable; the message is shown on the page."""
 
 
-def _text(root, path, default=None):
+def xml_text(root, path, default=None):
     node = root.find(path)
     return node.text.strip() if node is not None and node.text else default
 
@@ -106,7 +106,7 @@ def _value_before(lines, comment):
     return None
 
 
-def _read_sim(scenario):
+def read_sim(scenario):
     """Duration, step, orbit file and ground stations from the scenario's 42 Inp_Sim file."""
     sim_file = scenario_sim_file(scenario)
     lines = _read_42_lines(CFG_DIR / "InOut" / sim_file)
@@ -137,7 +137,7 @@ def _read_sim(scenario):
     }
 
 
-def _read_orbit(orbit_file):
+def read_orbit(orbit_file):
     """Description, altitudes and inclination from a 42 Orb_*.txt file."""
     if not orbit_file:
         return None
@@ -162,15 +162,15 @@ def _read_orbit(orbit_file):
     }
 
 
-def _read_spacecraft(index, sc_cfg):
+def read_spacecraft(index, sc_cfg):
     path = CFG_DIR / sc_cfg
     if not path.is_file():
         raise ConfigError(f"Spacecraft configuration not found: nos3/cfg/{sc_cfg}")
     root = ET.parse(path).getroot()
 
-    apps = [{"key": app.tag, "enabled": _is_true(_text(app, "enable"))} for app in root.findall("applications/*")]
+    apps = [{"key": app.tag, "enabled": _is_true(xml_text(app, "enable"))} for app in root.findall("applications/*")]
     components = [
-        {"key": c.tag, "name": COMPONENT_LABELS.get(c.tag, c.tag), "enabled": _is_true(_text(c, "enable"))}
+        {"key": c.tag, "name": COMPONENT_LABELS.get(c.tag, c.tag), "enabled": _is_true(xml_text(c, "enable"))}
         for c in root.findall("components/*")
     ]
     return {
@@ -178,8 +178,8 @@ def _read_spacecraft(index, sc_cfg):
         "config": path.name,
         "applications": apps,
         "components": components,
-        "graphics42": _is_true(_text(root, "gui/enable")),
-        "tipoffDegS": [float(_text(root, f"orbit/tipoff_{axis}", "0")) for axis in "xyz"],
+        "graphics42": _is_true(xml_text(root, "gui/enable")),
+        "tipoffDegS": [float(xml_text(root, f"orbit/tipoff_{axis}", "0")) for axis in "xyz"],
     }
 
 
@@ -187,12 +187,12 @@ def load_scenarios():
     """The scenarios a custom configuration can use, with their own 42 defaults."""
     scenarios = []
     for key, label in SCENARIOS.items():
-        sim = _read_sim(key)
+        sim = read_sim(key)
         scenarios.append({
             "key": key,
             "label": label,
             "simFile": sim["file"],
-            "orbit": _read_orbit(sim["orbitFile"]),
+            "orbit": read_orbit(sim["orbitFile"]),
             "groundStations": len(sim["groundStations"]),
             "stations": sim["groundStations"],
         })
@@ -207,19 +207,19 @@ def load_default_config():
         )
     try:
         mission = ET.parse(MISSION_FILE).getroot()
-        start = _text(mission, "start-time", "0")
-        fsw = _text(mission, "fsw", "")
-        gsw = _text(mission, "gsw", "")
-        scenario = _text(mission, "scenario", "STF1")
-        count = int(_text(mission, "number-spacecraft", "1"))
+        start = xml_text(mission, "start-time", "0")
+        fsw = xml_text(mission, "fsw", "")
+        gsw = xml_text(mission, "gsw", "")
+        scenario = xml_text(mission, "scenario", "STF1")
+        count = int(xml_text(mission, "number-spacecraft", "1"))
 
         spacecraft = []
         for i in range(1, count + 1):
-            sc_cfg = _text(mission, f"sc-{i}-cfg")
+            sc_cfg = xml_text(mission, f"sc-{i}-cfg")
             if sc_cfg:
-                spacecraft.append(_read_spacecraft(i, sc_cfg))
+                spacecraft.append(read_spacecraft(i, sc_cfg))
 
-        sim = _read_sim(scenario)
+        sim = read_sim(scenario)
         scenarios = load_scenarios()
     except (ET.ParseError, ValueError, OSError) as err:
         raise ConfigError(f"Couldn't read the default configuration: {err}") from err
@@ -241,7 +241,7 @@ def load_default_config():
         "spacecraft": spacecraft,
         "simFile": sim["file"],
         "scenarios": scenarios,
-        "orbit": _read_orbit(sim["orbitFile"]),
+        "orbit": read_orbit(sim["orbitFile"]),
         "groundStations": sim["groundStations"],
         "faultScenario": None,
         "hardwareInTheLoop": False,

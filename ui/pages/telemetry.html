@@ -174,12 +174,12 @@
 </template>
 
 <script src="assets/js/cos3-runtime.js"></script>
+<script src="assets/js/api.js"></script>
 <script src="assets/js/layout.js"></script>
 <script src="assets/js/css-charts.js"></script>
 <script>
     const POLL_MS = 1000;      // How often the CSS table refreshes
     const HK_POLL_MS = 2000;   // Housekeeping changes slowly; every 2 s is enough
-    const API_HEADERS = { 'X-COS3': '1' };   // Required by server/app.py for every /api/ call
 
     // Shown until the first reply arrives from the backend
     const EMPTY_CSS = {
@@ -207,9 +207,9 @@
       return {
         target: d.target,
         packet: d.packet,
-        count: d.received_count ?? '—',
-        scTime: d.spacecraft_time == null ? '—' : `${fmt(d.spacecraft_time, 2)} s`,
-        time: d.last_update ? d.last_update.split(' ')[1] : '—',
+        count: d.receivedCount ?? '—',
+        scTime: d.spacecraftTime == null ? '—' : `${fmt(d.spacecraftTime, 2)} s`,
+        time: d.lastUpdate ? d.lastUpdate.split(' ')[1] : '—',
         rows: d.rows.map((r) => ({
           name: r.name,
           raw: r.raw ?? '—',
@@ -222,9 +222,9 @@
       };
     }
 
-    // Turn the backend's /api/telemetry/css_hk reply into the housekeeping panel
+    // Turn the backend's /api/telemetry/css?packet=hk reply into the housekeeping panel
     function hkFromBackend(d) {
-      const v = Object.fromEntries(d.all_items || []);
+      const v = Object.fromEntries(d.allItems || []);
       const enabled = v.DEVICE_ENABLED ?? '—';
       const show = (row) => {
         const x = v[row.name];
@@ -262,28 +262,18 @@
       // Ask the backend for the latest CSS data packet (only while that tab is open).
       async pollCss() {
         if (this.state.sel !== 'Coarse sun sensors') return;
-        try {
-          const res = await fetch('/api/telemetry/css', { headers: API_HEADERS });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-          this.setState({ css: fromBackend(data), cssError: '' });
-          CssCharts.addSample(data);
-        } catch (err) {
-          this.setState({ cssError: `Could not load sun sensor data: ${err.message || err}` });
-        }
+        const data = await COS3.api.telemetry('css', 'data');
+        if (data.error) return this.setState({ cssError: `Could not load sun sensor data: ${data.error}` });
+        this.setState({ css: fromBackend(data), cssError: '' });
+        CssCharts.addSample(data);
       }
 
       // Ask the backend for the latest CSS housekeeping packet (only while that tab is open).
       async pollHk() {
         if (this.state.sel !== 'Coarse sun sensors') return;
-        try {
-          const res = await fetch('/api/telemetry/css_hk', { headers: API_HEADERS });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-          this.setState({ hk: hkFromBackend(data), hkError: '' });
-        } catch (err) {
-          this.setState({ hkError: `Could not load housekeeping: ${err.message || err}` });
-        }
+        const data = await COS3.api.telemetry('css', 'hk');
+        if (data.error) return this.setState({ hkError: `Could not load housekeeping: ${data.error}` });
+        this.setState({ hk: hkFromBackend(data), hkError: '' });
       }
 
       renderVals() {

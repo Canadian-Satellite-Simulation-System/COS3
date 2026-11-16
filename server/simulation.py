@@ -5,15 +5,14 @@ Starts and stops NOS3 for the COS3 UI.
 import subprocess
 import threading
 import time
-import urllib.request
 
+from server.cosmos_client import cosmos_up
 from server.mission_config import custom
 from server.settings import (
     CONTAINER,
     CONTAINER_USER,
     COSMOS_POLL_S,
-    COSMOS_REQUEST_TIMEOUT_S,
-    COSMOS_TIMEOUT_S,
+    COSMOS_START_TIMEOUT_S,
     COSMOS_URL,
     LAUNCH_TIMEOUT_S,
     NOS3_REPO_DIR,
@@ -41,10 +40,6 @@ INSTALL_CONFIG = (
     "cp cfg/build/nos3_defs/cpu1_cfe_es_startup.scr fsw/build/exe/cpu1/cf/cfe_es_startup.scr"
     " && cp cfg/build/sims/nos3-simulator.xml sims/build/bin/nos3-simulator.xml"
 )
-
-# Ignore any HTTP proxy settings when checking COSMOS on localhost
-_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-
 
 class LaunchError(Exception):
     """A launch or stop step failed; the message is shown on the page."""
@@ -80,15 +75,6 @@ def container_running():
     """Whether the nos3-desktop container is up."""
     code, output = run(["docker", "ps", "-q", "--filter", f"name=^{CONTAINER}$"], capture=True)
     return code == 0 and output.strip() != ""
-
-
-def cosmos_up():
-    """Whether COSMOS answers at COSMOS_URL."""
-    try:
-        with _opener.open(COSMOS_URL, timeout=COSMOS_REQUEST_TIMEOUT_S) as res:
-            return res.status < 400
-    except OSError:
-        return False
 
 
 class Launcher:
@@ -204,10 +190,10 @@ class Launcher:
             raise LaunchError("`make launch` failed.")
 
         self.stage = "Waiting for COSMOS…"
-        deadline = time.monotonic() + COSMOS_TIMEOUT_S
+        deadline = time.monotonic() + COSMOS_START_TIMEOUT_S
         while not cosmos_up():
             if time.monotonic() > deadline:
-                raise LaunchError(f"COSMOS didn't respond at {COSMOS_URL} within {COSMOS_TIMEOUT_S // 60} minutes.")
+                raise LaunchError(f"COSMOS didn't respond at {COSMOS_URL} within {COSMOS_START_TIMEOUT_S // 60} minutes.")
             time.sleep(COSMOS_POLL_S)
         self.state = "running"
 

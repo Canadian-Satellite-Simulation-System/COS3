@@ -15,7 +15,7 @@
   const INTEGER_TYPES = ['INT', 'UINT'];
 
   function maxBytes(p) {
-    return p.bit_size > 0 ? Math.floor(p.bit_size / 8) : null;
+    return p.bitSize > 0 ? Math.floor(p.bitSize / 8) : null;
   }
 
   function defaults(definition) {
@@ -23,11 +23,11 @@
   }
 
   function typeLabel(p) {
-    if (p.data_type === 'BLOCK' || p.data_type === 'STRING') {
+    if (p.dataType === 'BLOCK' || p.dataType === 'STRING') {
       const limit = maxBytes(p);
-      return `${p.data_type} · ${limit != null ? `up to ${limit} bytes` : 'variable size'}`;
+      return `${p.dataType} · ${limit != null ? `up to ${limit} bytes` : 'variable size'}`;
     }
-    return p.bit_size ? `${p.data_type} · ${p.bit_size}-bit` : p.data_type;
+    return p.bitSize ? `${p.dataType} · ${p.bitSize}-bit` : p.dataType;
   }
 
   function rangeLabel(p) {
@@ -48,7 +48,7 @@
 
   // Everything the template shows for one parameter
   function toField(p, value, error) {
-    const hazardous = new Set(p.hazardous_states || []);
+    const hazardous = new Set(p.hazardousStates || []);
     const field = {
       id: `param-${p.name}`,
       name: p.name,
@@ -76,11 +76,11 @@
     }
 
     field.isInput = true;
-    if (INTEGER_TYPES.includes(p.data_type)) {
+    if (INTEGER_TYPES.includes(p.dataType)) {
       Object.assign(field, {type: 'text', inputmode: 'numeric', placeholder: 'Whole number'});
-    } else if (p.data_type === 'FLOAT') {
+    } else if (p.dataType === 'FLOAT') {
       Object.assign(field, {type: 'text', inputmode: 'decimal', placeholder: 'Number'});
-    } else if (p.data_type === 'BLOCK') {
+    } else if (p.dataType === 'BLOCK') {
       Object.assign(field, {type: 'text', inputmode: 'text', placeholder: 'Hex bytes, e.g. 0A FF 3C', mono: true});
     } else {
       Object.assign(field, {type: 'text', inputmode: 'text', placeholder: ''});

@@ -8,10 +8,11 @@ never left COS3 (invalid values, hazardous ones awaiting confirmation) aren't re
 import itertools
 import threading
 from collections import deque
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from server.components import component_for
+from server.json_keys import to_json_dict
 
 LIMIT = 500
 
@@ -41,7 +42,7 @@ class CommandRecord:
 
     def to_dict(self):
         # component: the key of the component that owns the target (None if unknown), so the UI can show its name
-        return {**asdict(self), "component": component_for(self.target)}
+        return {**to_json_dict(self), "component": component_for(self.target)}
 
 
 class CommandHistory:

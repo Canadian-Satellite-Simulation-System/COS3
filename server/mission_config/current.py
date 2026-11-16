@@ -5,7 +5,7 @@ Reads the configuration of the current (most recently configured) simulation.
 import xml.etree.ElementTree as ET
 from pathlib import PurePosixPath
 
-from server.mission_config.default import CFG_DIR, ConfigError, _read_spacecraft, _text
+from server.mission_config.default import CFG_DIR, ConfigError, read_spacecraft, xml_text
 from server.settings import NOS3_DIR, NOS3_REPO_DIR
 
 CURRENT_CONFIG_PATH_FILE = CFG_DIR / "build" / "current_config_path.txt"
@@ -43,9 +43,9 @@ def load_enabled_components():
     try:
         mission = ET.parse(mission_file).getroot()
 
-        sc_cfg = _text(mission, "sc-1-cfg")
+        sc_cfg = xml_text(mission, "sc-1-cfg")
 
-        sc = _read_spacecraft(1, sc_cfg)
+        sc = read_spacecraft(1, sc_cfg)
         spacecraft = {
             "name": sc["name"],
             "config": sc["config"],

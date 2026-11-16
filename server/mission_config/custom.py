@@ -14,10 +14,8 @@ import datetime
 import shutil
 import xml.etree.ElementTree as ET
 
-from server.mission_config.default import SCENARIOS, _read_orbit, _read_sim
-from server.settings import NOS3_REPO_DIR
+from server.mission_config.default import CFG_DIR, MISSION_FILE, SCENARIOS, read_orbit, read_sim
 
-CFG_DIR = NOS3_REPO_DIR / "cfg"
 BUILD_DIR = CFG_DIR / "build"
 
 # Passed to make config as SC1_CFG (path relative to nos3/cfg/)
@@ -38,7 +36,7 @@ STATION_WORLDS = {"Earth": "EARTH", "Luna": "LUNA"}
 
 def _default_spacecraft_path():
     """The spacecraft file the default mission uses (<sc-1-cfg> in nos3-mission.xml)."""
-    mission = ET.parse(CFG_DIR / "nos3-mission.xml").getroot()
+    mission = ET.parse(MISSION_FILE).getroot()
     return CFG_DIR / mission.find("sc-1-cfg").text.strip()
 
 
@@ -139,7 +137,7 @@ def _validate_stations(stations):
 
 def scenario_orbit_editable(scenario):
     """Whether the scenario's orbit is described by periapsis/apoapsis/inclination."""
-    orbit = _read_orbit(_read_sim(scenario)["orbitFile"])
+    orbit = read_orbit(read_sim(scenario)["orbitFile"])
     return bool(orbit and orbit["editable"])
 
 

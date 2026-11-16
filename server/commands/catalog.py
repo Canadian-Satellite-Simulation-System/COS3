@@ -1,7 +1,8 @@
 import threading
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 from server.components import CommandPath, targets_for
+from server.json_keys import to_json_dict
 
 DERIVED = "DERIVED"
 BLOCK = "BLOCK"
@@ -56,6 +57,9 @@ class CommandSummary:
     description: str
     hazardous: bool
 
+    def to_dict(self):
+        return to_json_dict(self)
+
 
 @dataclass(frozen=True)
 class CommandDefinition:
@@ -70,7 +74,7 @@ class CommandDefinition:
         return CommandSummary(self.target, self.name, self.description, self.hazardous)
 
     def to_dict(self):
-        return asdict(self)
+        return {**to_json_dict(self), "parameters": [to_json_dict(p) for p in self.parameters]}
 
 
 def _states(states):

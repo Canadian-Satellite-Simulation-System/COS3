@@ -35,6 +35,7 @@ COMPONENT_COMMANDS = re.compile(r"^/api/components/(?P<key>[a-z0-9_]+)/commands$
 COMMAND = re.compile(r"^/api/commands/(?P<target>[A-Z0-9_]+)/(?P<name>[A-Z0-9_]+)$")
 COMMAND_VALIDATE = re.compile(r"^/api/commands/(?P<target>[A-Z0-9_]+)/(?P<name>[A-Z0-9_]+)/validate$")
 RESEND = re.compile(r"^/api/history/(?P<id>\d+)/resend$")
+TELEMETRY = re.compile(r"^/api/telemetry/(?P<key>[a-z0-9_]+)$")
 
 
 def enabled_component_keys():
@@ -84,17 +85,28 @@ class Handler(SimpleHTTPRequestHandler):
             self._component_commands(match["key"], query.get("path", ["DEBUG"])[0])
         elif match := COMMAND.match(path):
             self._command(match["target"], match["name"])
-        elif path.startswith("/api/telemetry/"):
-             key = path.removeprefix("/api/telemetry/")
-             if key not in telemetry.COMPONENTS:
-                 self._send_json(404, {"error": f"Unknown component: {key}"})
-                 return
-             try:
-                 self._send_json(200, telemetry.get_component(key))
-             except Exception as err:   # COSMOS down, timeout, bad password, unknown packet...
-                 self._send_json(502, {"error": f"COSMOS request failed: {err}"})
+        elif match := TELEMETRY.match(path):
+            query = parse_qs(urlsplit(self.path).query)
+            self._telemetry(match["key"], query.get("packet", ["data"])[0], query.get("path", ["DEBUG"])[0])
         else:
             self._send_json(404, {"error": "Not found"})
+
+    def _telemetry(self, key, packet, path):
+        """GET /api/telemetry/{key}?packet=data|hk&path=DEBUG|RADIO: a packet's latest values, if the component is enabled."""
+        try:
+            path = CommandPath(path)
+        except ValueError:
+            return self._send_json(400, {"error": "path must be DEBUG or RADIO"})
+
+        if not self._component_enabled(key):
+            return
+
+        try:
+            self._send_json(200, telemetry.read_packet(cosmos, key, packet, path))
+        except (UnknownComponent, telemetry.UnknownPacket):
+            self._send_json(404, {"error": f"No {packet} telemetry for component {key}."})
+        except CosmosError as err:
+            self._send_cosmos_error(err)
 
     def _command(self, target, name):
         """GET /api/commands/{target}/{name}: one command and its parameters, if its component is enabled."""
@@ -197,7 +209,7 @@ class Handler(SimpleHTTPRequestHandler):
         except CosmosError as err:
             return self._send_cosmos_error(err)
 
-        self._send_json(200, {"component": key, "path": path.value, "commands": [c.__dict__ for c in commands]})
+        self._send_json(200, {"component": key, "path": path.value, "commands": [c.to_dict() for c in commands]})
 
     def _component_enabled(self, key):
         """Send 404 (or 500) and return False unless the component is enabled in the current simulation."""

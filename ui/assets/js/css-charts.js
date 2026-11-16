@@ -173,8 +173,8 @@
 
     // Add one backend reply (skips a packet that was already added)
     addSample(d) {
-      if (!d.last_update) return;
-      const t = Date.parse(d.last_update.replace(/\//g, '-').replace(' ', 'T') + 'Z');   // UTC
+      if (!d.lastUpdate) return;
+      const t = Date.parse(d.lastUpdate.replace(/\//g, '-').replace(' ', 'T') + 'Z');   // UTC
       if (history.length && history[history.length - 1].t >= t) return;
       const raw = {}, value = {};
       d.rows.forEach((r) => { raw[r.name] = r.raw; value[r.name] = r.value; });

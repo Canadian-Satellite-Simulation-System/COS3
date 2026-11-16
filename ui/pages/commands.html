@@ -518,8 +518,8 @@
   </template>
 
   <script src="assets/js/cos3-runtime.js"></script>
-  <script src="assets/js/api.js"></script>
   <script src="assets/js/command-form.js"></script>
+  <script src="assets/js/api.js"></script>
   <script src="assets/js/layout.js"></script>
   <script>
     function matches(query, ...fields) {
@@ -876,8 +876,8 @@
           defError: s.defError,
           def,
           pathLabel: def && def.target.endsWith('_RADIO') ? 'Radio' : 'Debug',
-          hazardText: def && def.hazardous_description
-            ? def.hazardous_description
+          hazardText: def && def.hazardousDescription
+            ? def.hazardousDescription
             : 'Sending it will need an explicit confirmation.',
           paramSummary: def ? COS3.commandForm.summary(def) : '',
           noParams: !!def && params.length === 0,

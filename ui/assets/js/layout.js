@@ -52,12 +52,6 @@
   // Key of the current page (the nav's data-active), set when the page's nav is built
   let currentPage = null;
 
-  async function api(method, path) {
-    // The server rejects API requests without the X-COS3 header
-    const res = await fetch(path, { method, headers: { 'X-COS3': '1' } });
-    return res.json();
-  }
-
   // Simulation pages visible while one runs, only the wizard otherwise.
   // Before the server answers, the current page decides (the wizard assumes "not running").
   function simMode() {
@@ -99,11 +93,9 @@
   }
 
   async function pollStatus() {
-    try {
-      setState((await api('GET', '/api/status')).state);
-    } catch (e) {
-      // Server not reachable: keep showing the last known state
-    }
+    // Server not reachable (no state): keep showing the last known state
+    const res = await COS3.api.request('GET', '/api/status');
+    if (res.state) setState(res.state);
     setTimeout(pollStatus, STATUS_POLL_MS);
   }
 
@@ -112,11 +104,8 @@
     const btn = e.target.closest && e.target.closest('[data-cos3-btn="stop"]');
     if (!btn || btn.disabled || !confirm('Stop the simulation?')) return;
     setState('stopping');
-    try {
-      await api('POST', '/api/stop');
-    } catch (err) {
-      // The next status poll shows the real state
-    }
+    // The next status poll shows the real state
+    await COS3.api.stop();
   });
 
   function header(opts) {

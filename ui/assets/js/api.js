@@ -16,17 +16,11 @@
   const POLL_MS = 2000;
   let pollTimer = null;
 
-  async function api(method, path, body) {
-    // The server rejects API requests without this header
-    const headers = { 'X-COS3': '1' };
-    if (body !== undefined) headers['Content-Type'] = 'application/json';
-    const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-    return res.json();
-  }
-
-  // Like api(), but failures resolve to { error, status } so callers can react to e.g. 401
-  async function apiWithStatus(method, path, body) {
+  // Every /api/ call goes through here. Resolves to the JSON body, or on failure to
+  // { ...body, error, status } (status 0 = server unreachable), so callers can react to e.g. 401.
+  async function request(method, path, body) {
     try {
+      // The server rejects API requests without this header
       const headers = { 'X-COS3': '1' };
       if (body !== undefined) headers['Content-Type'] = 'application/json';
       const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -43,11 +37,11 @@
   }
 
   async function status() {
-    try {
-      return await api('GET', '/api/status');
-    } catch (e) {
+    const res = await request('GET', '/api/status');
+    if (res.status === 0) {
       return { state: 'error', stage: '', error: "Can't reach the UI server. Is `python3 main.py` running?", containerRunning: false };
     }
+    return res;
   }
 
   // Polls until the current operation finishes; onUpdate gets every status (including the final one)
@@ -64,44 +58,49 @@
   window.COS3.api = {
     COSMOS_URL: 'http://localhost:2900',
     DESKTOP_URL: 'http://localhost:6080/vnc.html',
+    request,
     isBusy,
     status,
     watch,
     // Default NOS3 configuration; resolves to { error } if it can't be read
-    defaultConfig: () => api('GET', '/api/config/default').catch(() => ({ error: "Can't reach the UI server." })),
+    defaultConfig: () => request('GET', '/api/config/default'),
     // Components enabled in the current simulation: { spacecraft: [{ name, config, components: [{ key, name }] }] }
-    components: () => api('GET', '/api/components').catch(() => ({ error: "Can't reach the UI server." })),
+    components: () => request('GET', '/api/components'),
     // Commands for an enabled component: { component, path, commands: [{ target, name, description, hazardous }] }.
     // path: 'DEBUG' or 'RADIO'. Resolves to { error, status } on failure (status 401 = log in to COSMOS).
     commands: (componentKey, path) =>
-      apiWithStatus('GET', `/api/components/${encodeURIComponent(componentKey)}/commands?path=${encodeURIComponent(path)}`),
-    // One command: { target, name, description, hazardous, hazardous_description, parameters: [{ name,
-    // data_type, bit_size, minimum, maximum, default, units, description, states, hazardous_states,
+      request('GET', `/api/components/${encodeURIComponent(componentKey)}/commands?path=${encodeURIComponent(path)}`),
+    // One command: { target, name, description, hazardous, hazardousDescription, parameters: [{ name,
+    // dataType, bitSize, minimum, maximum, default, units, description, states, hazardousStates,
     // required, conversion }] }, or { error, status }
     command: (target, name) =>
-      apiWithStatus('GET', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}`),
+      request('GET', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}`),
     // Check parameter values on the server (server/commands/validation.py) without sending:
     // { errors: { name: message } } ({} = all valid), or { error, status }
     validateCommand: (target, name, values) =>
-      apiWithStatus('POST', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}/validate`, { values }),
+      request('POST', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}/validate`, { values }),
     // Send a command: { record } (record.status: sent | rejected | failed), or on failure
     // { error, status, errors } (400: invalid values) / { error, status, confirm } (409: hazardous,
     // send again with confirmHazardous = true)
     sendCommand: (target, name, values, confirmHazardous = false) =>
-      apiWithStatus('POST', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}`,
+      request('POST', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}`,
         { values, confirmHazardous }),
     // Sent commands, newest first: { commands: [record] }, or { error, status }
-    history: () => apiWithStatus('GET', '/api/history'),
+    history: () => request('GET', '/api/history'),
     // Send a recorded command again: same answers as sendCommand
     resend: (id, confirmHazardous = false) =>
-      apiWithStatus('POST', `/api/history/${encodeURIComponent(id)}/resend`, { confirmHazardous }),
+      request('POST', `/api/history/${encodeURIComponent(id)}/resend`, { confirmHazardous }),
     // Whether the server has a COSMOS session: { loggedIn }, or { error, status }
-    session: () => apiWithStatus('GET', '/api/session'),
+    session: () => request('GET', '/api/session'),
     // Log in to COSMOS: resolves to { loggedIn: true } or { error, status }
-    login: (password) => apiWithStatus('POST', '/api/login', { password }),
+    login: (password) => request('POST', '/api/login', { password }),
     // values: null for the default configuration, or { startUtc, durationS, components }.
     // Resolves to { error } if the server refuses the values.
-    launch: (values) => api('POST', '/api/launch', values ? { values } : undefined),
-    stop: () => api('POST', '/api/stop')
+    launch: (values) => request('POST', '/api/launch', values ? { values } : undefined),
+    stop: () => request('POST', '/api/stop'),
+    // Latest values of a component's telemetry packet ('data' or 'hk'): { component, target, packet,
+    // receivedCount, spacecraftTime, lastUpdate, rows, allItems }, or { error, status } (401 = log in to COSMOS)
+    telemetry: (componentKey, packet = 'data', path = 'DEBUG') =>
+      request('GET', `/api/telemetry/${encodeURIComponent(componentKey)}?packet=${encodeURIComponent(packet)}&path=${encodeURIComponent(path)}`)
   };
 })();
