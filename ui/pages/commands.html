@@ -8,7 +8,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap"
     rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/css/style.css">
   <style>
     /* Styles used only on this page */
     th {
@@ -517,10 +517,10 @@
     </div>
   </template>
 
-  <script src="assets/cos3-runtime.js"></script>
-  <script src="assets/api.js"></script>
-  <script src="assets/command-form.js"></script>
-  <script src="assets/layout.js"></script>
+  <script src="assets/js/cos3-runtime.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/command-form.js"></script>
+  <script src="assets/js/layout.js"></script>
   <script>
     function matches(query, ...fields) {
       const q = query.trim().toLowerCase();
@@ -753,7 +753,7 @@
         this.setState({defLoading: false, def: res});
       }
 
-      // Ask the server (commands/validation.py) to check the current values. Errors are shown
+      // Ask the server (server/commands/validation.py) to check the current values. Errors are shown
       // only for fields in `this.touched`. Resolves to the number of errors shown, or null if
       // the reply was stale or the check failed.
       async validateForm() {

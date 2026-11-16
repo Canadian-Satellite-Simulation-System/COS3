@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=1440">
 <title>COS3 – Hardware (HIL)</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/css/style.css">
 <style>
 /* Styles used only on this page */
 input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px solid #999;border-radius:4px;padding:0 10px;box-sizing:border-box;background:#fff;color:#222;width:100%}
@@ -18,7 +18,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 <div id="app"></div>
 
 <!-- Page markup. {{name}} values come from renderVals() in the script below.
-     Header and sidebar are shared: see assets/layout.js. -->
+     Header and sidebar are shared: see assets/js/layout.js. -->
 <template id="page">
 <div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
 <div data-cos3="header" data-status="running"></div>
@@ -63,8 +63,8 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 </div>
 </template>
 
-<script src="assets/cos3-runtime.js"></script>
-<script src="assets/layout.js"></script>
+<script src="assets/js/cos3-runtime.js"></script>
+<script src="assets/js/layout.js"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { src: 'hw', sel: { '+Z': true } }; }

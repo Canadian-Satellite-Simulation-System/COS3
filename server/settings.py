@@ -1,6 +1,6 @@
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 HOST = "127.0.0.1"
 PORT = 3000
@@ -14,7 +14,8 @@ COSMOS_REQUEST_TIMEOUT_S = 2
 
 CONTAINER = "nos3-desktop"
 CONTAINER_USER = "jstar"
-BACKEND_DIR = ROOT_DIR / "backend"
+# The NOS3 submodule on the host (mounted at NOS3_DIR in the container)
+NOS3_REPO_DIR = ROOT_DIR / "nos3"
 NOS3_DIR = "/home/jstar/nos3"
 USER_NOS3_DIR = "/home/jstar/.nos3"
 # Created by `make prep`

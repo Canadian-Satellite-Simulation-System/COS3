@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=1440">
 <title>COS3 – Setup Wizard</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/css/style.css">
 <style>
 /* Styles used only on this page */
 input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px solid #999;border-radius:4px;padding:0 10px;box-sizing:border-box;background:#fff;color:#222;width:100%}
@@ -25,7 +25,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 <div id="app"></div>
 
 <!-- Page markup. {{name}} values come from renderVals() in the script below.
-     Header and sidebar are shared: see assets/layout.js. -->
+     Header and sidebar are shared: see assets/js/layout.js. -->
 <template id="page">
 <div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
 <div data-cos3="header" data-status="not-started"></div>
@@ -222,9 +222,9 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 </div>
 </template>
 
-<script src="assets/cos3-runtime.js"></script>
-<script src="assets/layout.js"></script>
-<script src="assets/api.js"></script>
+<script src="assets/js/cos3-runtime.js"></script>
+<script src="assets/js/layout.js"></script>
+<script src="assets/js/api.js"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -357,7 +357,7 @@ class Component extends DCLogic {
       // If the server is older than this page (no scenario list), show at least the current scenario
       scenarioOpts: (cfg && cfg.scenarios && cfg.scenarios.length
         ? cfg.scenarios
-        : [{ key: d.scenario, label: 'restart server.py to choose another scenario' }]
+        : [{ key: d.scenario, label: 'restart main.py to choose another scenario' }]
       ).map((s) => ({ key: s.key, label: s.label, sel: s.key === d.scenario })),
       setScenario: (e) => this.setScenario(e.target.value),
       orbitEditable: this.orbitEditable(),

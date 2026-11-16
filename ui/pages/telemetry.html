@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=1440">
     <title>COS3 – Telemetry</title>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
     <style>
         /* Styles used only on this page */
         th{text-align:left;font-weight:600;color:#444;border-bottom:1.5px solid #999;padding:8px 12px;background:#F4F4F4}
@@ -45,7 +45,7 @@
 <div id="app"></div>
 
 <!-- Page markup. {{name}} values come from renderVals() in the script below.
-     Header and sidebar are shared: see assets/layout.js. -->
+     Header and sidebar are shared: see assets/js/layout.js. -->
 <template id="page">
     <div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
         <div data-cos3="header" data-status="running"></div>
@@ -161,7 +161,7 @@
                             <section class="pnl"><span class="h">Wheel momentum</span><div class="ph" style="flex:1"><span>Line chart</span></div></section>
                         </div>
 
-                        <!-- CSS charts: filled by assets/css-charts.js -->
+                        <!-- CSS charts: filled by assets/js/css-charts.js -->
                         <div style="flex:1;min-height:260px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;{{cssShow}}">
                             <div id="css-chart-raw" style="display:flex;min-width:0;min-height:0"></div>
                             <div id="css-chart-value" style="display:flex;min-width:0;min-height:0"></div>
@@ -173,13 +173,13 @@
     </div>
 </template>
 
-<script src="assets/cos3-runtime.js"></script>
-<script src="assets/layout.js"></script>
-<script src="assets/css-charts.js"></script>
+<script src="assets/js/cos3-runtime.js"></script>
+<script src="assets/js/layout.js"></script>
+<script src="assets/js/css-charts.js"></script>
 <script>
     const POLL_MS = 1000;      // How often the CSS table refreshes
     const HK_POLL_MS = 2000;   // Housekeeping changes slowly; every 2 s is enough
-    const API_HEADERS = { 'X-COS3': '1' };   // Required by server.py for every /api/ call
+    const API_HEADERS = { 'X-COS3': '1' };   // Required by server/app.py for every /api/ call
 
     // Shown until the first reply arrives from the backend
     const EMPTY_CSS = {

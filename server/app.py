@@ -1,5 +1,5 @@
 """
-Serves the COS3 UI  and the API that starts/stops NOS3.
+Serves the COS3 UI and the API that starts/stops NOS3. Run it with `python3 main.py`.
 """
 import json
 import re
@@ -7,20 +7,21 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
-import cosmos_telemetry
-import custom_config
-from constants import ALLOWED_HOSTS, HOST, PORT, ROOT_DIR
-from cosmos_client import CosmosError, CosmosJSONAPIClient, CosmosRejected, CosmosUnavailable, NotAuthenticated
-from current_config import load_enabled_components
-from default_config import ConfigError, load_default_config
-from launcher import launcher
-from commands.targets import CommandPath, UnknownComponent, component_for
-from commands.command_catalog import CommandCatalog, UnknownCommand
-from commands.history import CommandHistory, UnknownRecord
-from commands.sender import CommandSender, ConfirmationRequired, ValidationFailed
-from commands.validation import validate
+from server.commands.catalog import CommandCatalog, UnknownCommand
+from server.commands.history import CommandHistory, UnknownRecord
+from server.commands.sender import CommandSender, ConfirmationRequired, ValidationFailed
+from server.commands.validation import validate
+from server.components import CommandPath, UnknownComponent, component_for
+from server.cosmos_client import CosmosError, CosmosJSONAPIClient, CosmosRejected, CosmosUnavailable, NotAuthenticated
+from server.mission_config import custom
+from server.mission_config.current import load_enabled_components
+from server.mission_config.default import ConfigError, load_default_config
+from server.settings import ALLOWED_HOSTS, HOST, PORT, ROOT_DIR
+from server.simulation import launcher
+from server.telemetry import reader as telemetry
 
 UI_DIR = ROOT_DIR / "ui"
+PAGES_DIR = UI_DIR / "pages"
 
 MAX_BODY_BYTES = 64 * 1024
 
@@ -42,7 +43,7 @@ def enabled_component_keys():
 
 
 class Handler(SimpleHTTPRequestHandler):
-    """Serves files from ui/ and the /api/* endpoints."""
+    """Serves pages from ui/pages/ at /, shared files from ui/assets/ at /assets/, and the /api/* endpoints."""
 
     # Explicit types, so .js and .css are served correctly on every OS
     extensions_map = {
@@ -85,11 +86,11 @@ class Handler(SimpleHTTPRequestHandler):
             self._command(match["target"], match["name"])
         elif path.startswith("/api/telemetry/"):
              key = path.removeprefix("/api/telemetry/")
-             if key not in cosmos_telemetry.COMPONENTS:
+             if key not in telemetry.COMPONENTS:
                  self._send_json(404, {"error": f"Unknown component: {key}"})
                  return
              try:
-                 self._send_json(200, cosmos_telemetry.get_component(key))
+                 self._send_json(200, telemetry.get_component(key))
              except Exception as err:   # COSMOS down, timeout, bad password, unknown packet...
                  self._send_json(502, {"error": f"COSMOS request failed: {err}"})
         else:
@@ -224,6 +225,11 @@ class Handler(SimpleHTTPRequestHandler):
             status, message = 502, str(err) or "COSMOS request failed."
         self._send_json(status, {"error": message})
 
+    def translate_path(self, path):
+        # /assets/... is read from ui/, everything else from ui/pages/
+        self.directory = str(UI_DIR if urlsplit(path).path.startswith("/assets/") else PAGES_DIR)
+        return super().translate_path(path)
+
     def do_HEAD(self):
         if self._allowed():
             super().do_HEAD()
@@ -246,7 +252,7 @@ class Handler(SimpleHTTPRequestHandler):
             # Optional body {"values": {...}} for a custom configuration; no body = default
             try:
                 values = self._read_json().get("values")
-                values = custom_config.validate(values) if values is not None else None
+                values = custom.validate(values) if values is not None else None
             except ValueError as err:
                 return self._send_json(400, {"error": str(err)})
             operation = ("starting", lambda: launcher.launch(values))
@@ -325,7 +331,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
-    handler = partial(Handler, directory=str(UI_DIR))
+    handler = partial(Handler, directory=str(PAGES_DIR))
     server = ThreadingHTTPServer((HOST, PORT), handler)
     print(f"COS3 UI running at http://localhost:{PORT}")
     try:

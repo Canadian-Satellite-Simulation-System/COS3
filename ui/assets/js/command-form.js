@@ -6,7 +6,7 @@
  *   COS3.commandForm.summary(definition)        -> e.g. "2 parameters · 1 required"
  *
  * `definition` and `param` are what GET /api/commands/{target}/{name} returns.
- * No validation here: values are checked only on the server (commands/validation.py),
+ * No validation here: values are checked only on the server (server/commands/validation.py),
  * through COS3.api.validateCommand().
  */
 (function () {

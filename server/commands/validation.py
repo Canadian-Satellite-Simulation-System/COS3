@@ -10,7 +10,7 @@ names to a message for the operator. Send only when errors is empty.
 Empty optional fields are left out of values, so COSMOS uses the parameter's
 default. BLOCK values are hex (e.g. "0A FF 3C") and come back as bytes.
 
-The browser runs the same checks for instant feedback (ui/assets/command-form.js);
+The browser runs the same checks for instant feedback (ui/assets/js/command-form.js);
 this is the authoritative version.
 """
 

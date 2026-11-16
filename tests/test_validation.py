@@ -1,7 +1,7 @@
 import unittest
 
-from commands.command_catalog import CommandCatalog
-from commands.validation import validate
+from server.commands.catalog import CommandCatalog
+from server.commands.validation import validate
 from tests.fixtures import FakeClient
 
 

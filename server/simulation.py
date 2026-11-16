@@ -1,9 +1,5 @@
 """
 Starts and stops NOS3 for the COS3 UI.
-
-NOS3 runs inside the nos3-desktop container (backend/docker/run.sh): `make launch`
-opens its terminal tabs and the 42 window on the container's virtual desktop
-(http://localhost:6080/vnc.html), not on the user's screen.
 """
 
 import subprocess
@@ -11,9 +7,8 @@ import threading
 import time
 import urllib.request
 
-import custom_config
-from constants import (
-    BACKEND_DIR,
+from server.mission_config import custom
+from server.settings import (
     CONTAINER,
     CONTAINER_USER,
     COSMOS_POLL_S,
@@ -21,6 +16,7 @@ from constants import (
     COSMOS_TIMEOUT_S,
     COSMOS_URL,
     LAUNCH_TIMEOUT_S,
+    NOS3_REPO_DIR,
     NOS3_42_DIR,
     NOS3_DIR,
     OPENC3_DIR,
@@ -155,18 +151,18 @@ class Launcher:
 
     def configure(self, values):
         """`make config` with the default configuration (values=None) or a custom one
-        (validated values from custom_config.validate)."""
+        (validated values from custom.validate)."""
         if values is None:
             self.stage = "Configuring NOS3 (default)…"
             code, _ = nos3_exec("make config", timeout=SETUP_TIMEOUT_S)
         else:
             self.stage = "Configuring NOS3 (custom)…"
-            custom_config.write_spacecraft(values)
-            code, _ = nos3_exec(f"make config SC1_CFG={custom_config.SPACECRAFT_FILE}", timeout=SETUP_TIMEOUT_S)
+            custom.write_spacecraft(values)
+            code, _ = nos3_exec(f"make config SC1_CFG={custom.SPACECRAFT_FILE}", timeout=SETUP_TIMEOUT_S)
         if code != 0:
             raise LaunchError("`make config` failed.")
         if values is not None:
-            custom_config.patch_after_config(values)
+            custom.patch_after_config(values)
 
     def launch(self, values=None):
         """Start the container, apply the configuration, run any missing setup,
@@ -179,7 +175,7 @@ class Launcher:
 
         if not was_running:
             self.stage = "Starting container…"
-            code, _ = run([str(BACKEND_DIR / "docker" / "run.sh")])
+            code, _ = run([str(NOS3_REPO_DIR / "docker" / "run.sh")])
             if code != 0:
                 raise LaunchError("Couldn't start the nos3-desktop container. Is Docker Desktop running?")
         self.container_up = True
@@ -222,7 +218,7 @@ class Launcher:
             nos3_exec("make stop", timeout=STOP_TIMEOUT_S)
 
         self.stage = "Stopping container…"
-        code, _ = run([str(BACKEND_DIR / "docker" / "stop.sh")])
+        code, _ = run([str(NOS3_REPO_DIR / "docker" / "stop.sh")])
         if code != 0:
             raise LaunchError("Couldn't stop the nos3-desktop container.")
         self.container_up = False

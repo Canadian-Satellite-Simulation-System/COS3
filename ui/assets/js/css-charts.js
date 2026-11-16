@@ -3,7 +3,7 @@
  * with an Expand view and a hover tracker. The item is chosen by clicking a table row.
  *
  * Use from a page:
- *   <script src="assets/css-charts.js"></script>
+ *   <script src="assets/js/css-charts.js"></script>
  *   CssCharts.init()            once, after COS3.mount(...)
  *   CssCharts.addSample(data)   for each /api/telemetry/css reply (or streamed packet)
  *   CssCharts.select(name)      when the user clicks a row, e.g. 'RAW_CSS_2'

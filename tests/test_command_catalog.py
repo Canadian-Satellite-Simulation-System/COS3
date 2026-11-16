@@ -1,7 +1,7 @@
 import unittest
 
-from commands.command_catalog import CommandCatalog, UnknownCommand
-from commands.targets import CommandPath
+from server.commands.catalog import CommandCatalog, UnknownCommand
+from server.components import CommandPath
 from tests.fixtures import FakeClient
 
 

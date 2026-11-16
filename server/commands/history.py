@@ -11,7 +11,7 @@ from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 
-from commands.targets import component_for
+from server.components import component_for
 
 LIMIT = 500
 

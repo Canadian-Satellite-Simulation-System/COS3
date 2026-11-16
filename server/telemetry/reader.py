@@ -1,6 +1,4 @@
-"""Read component telemetry from COSMOS 6 through the JSON API.
-
-To add a component: add an entry to COMPONENTS (bottom section). No other code changes.
+"""Read component telemetry from COSMOS through the JSON API.
 """
 
 import json
@@ -172,6 +170,6 @@ COMPONENTS = {
 
 
 if __name__ == "__main__":
-    # Terminal test: python3 cosmos_telemetry.py css   (or css_hk, fss)
+    # Terminal test: python3 -m server.telemetry.reader css   (or css_hk, fss)
     import sys
     print(json.dumps(get_component(sys.argv[1] if len(sys.argv) > 1 else "css"), indent=2))

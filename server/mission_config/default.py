@@ -1,22 +1,22 @@
 """
-Reads the default NOS3 configuration from the backend, for display in the Setup Wizard.
+Reads the default NOS3 configuration from the NOS3 submodule, for display in the Setup Wizard.
 
 Read only: nothing is written. These are the same files `make config` uses
-(backend/scripts/cfg/configure.py) when no SC1_CFG is given:
+(nos3/scripts/cfg/configure.py) when no SC1_CFG is given:
 
-  backend/cfg/nos3-mission.xml               mission: start time, fsw, gsw, scenario, spacecraft
-  backend/cfg/spacecraft/sc-*-config.xml     spacecraft: cFS applications and components on/off
-  backend/cfg/InOut/Inp_Sim_<scenario>.txt   42: duration, step, ground stations, orbit file
-  backend/cfg/InOut/Orb_*.txt                42: orbit description, altitudes, inclination
+  nos3/cfg/nos3-mission.xml                  mission: start time, fsw, gsw, scenario, spacecraft
+  nos3/cfg/spacecraft/sc-*-config.xml        spacecraft: cFS applications and components on/off
+  nos3/cfg/InOut/Inp_Sim_<scenario>.txt      42: duration, step, ground stations, orbit file
+  nos3/cfg/InOut/Orb_*.txt                   42: orbit description, altitudes, inclination
 """
 
 import datetime
 import re
 import xml.etree.ElementTree as ET
 
-from constants import BACKEND_DIR
+from server.settings import NOS3_REPO_DIR
 
-CFG_DIR = BACKEND_DIR / "cfg"
+CFG_DIR = NOS3_REPO_DIR / "cfg"
 MISSION_FILE = CFG_DIR / "nos3-mission.xml"
 
 # NOS3 scenarios (<scenario> in nos3-mission.xml). Same scenario -> 42 file mapping as
@@ -165,7 +165,7 @@ def _read_orbit(orbit_file):
 def _read_spacecraft(index, sc_cfg):
     path = CFG_DIR / sc_cfg
     if not path.is_file():
-        raise ConfigError(f"Spacecraft configuration not found: backend/cfg/{sc_cfg}")
+        raise ConfigError(f"Spacecraft configuration not found: nos3/cfg/{sc_cfg}")
     root = ET.parse(path).getroot()
 
     apps = [{"key": app.tag, "enabled": _is_true(_text(app, "enable"))} for app in root.findall("applications/*")]
@@ -203,7 +203,7 @@ def load_default_config():
     """The default configuration as a dict (sent as JSON by GET /api/config/default)."""
     if not MISSION_FILE.is_file():
         raise ConfigError(
-            "backend/cfg/nos3-mission.xml not found. Run `git submodule update --init --recursive`."
+            "nos3/cfg/nos3-mission.xml not found. Run `git submodule update --init --recursive`."
         )
     try:
         mission = ET.parse(MISSION_FILE).getroot()

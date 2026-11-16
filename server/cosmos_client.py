@@ -4,7 +4,7 @@ import threading
 import urllib.error
 import urllib.request
 
-from constants import COSMOS_API_URL, COSMOS_URL, TIMEOUT_S
+from server.settings import COSMOS_API_URL, COSMOS_URL, TIMEOUT_S
 
 AUTH_URL = COSMOS_URL + "/openc3-api/auth/verify"
 SCOPE = "DEFAULT"

@@ -5,8 +5,8 @@ Reads the configuration of the current (most recently configured) simulation.
 import xml.etree.ElementTree as ET
 from pathlib import PurePosixPath
 
-from constants import BACKEND_DIR, NOS3_DIR
-from default_config import CFG_DIR, ConfigError, _read_spacecraft, _text
+from server.mission_config.default import CFG_DIR, ConfigError, _read_spacecraft, _text
+from server.settings import NOS3_DIR, NOS3_REPO_DIR
 
 CURRENT_CONFIG_PATH_FILE = CFG_DIR / "build" / "current_config_path.txt"
 
@@ -26,11 +26,11 @@ def _current_mission_file():
         raise ConfigError(f"Unexpected configuration path: {
                           container_path}") from None
 
-    path = BACKEND_DIR / relative
+    path = NOS3_REPO_DIR / relative
 
     if not path.is_file():
         raise ConfigError(
-            f"Current configuration not found: backend/{relative}")
+            f"Current configuration not found: nos3/{relative}")
 
     return path
 

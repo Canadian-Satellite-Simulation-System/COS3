@@ -1,7 +1,7 @@
 import threading
 from dataclasses import asdict, dataclass
 
-from commands.targets import CommandPath, targets_for
+from server.components import CommandPath, targets_for
 
 DERIVED = "DERIVED"
 BLOCK = "BLOCK"

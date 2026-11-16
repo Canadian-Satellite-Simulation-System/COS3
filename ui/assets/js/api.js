@@ -1,10 +1,10 @@
 /*
- * COS3 – client for the server.py API (start/stop NOS3).
+ * COS3 – client for the server/app.py API (start/stop NOS3).
  * Adapted from main.js (first launcher prototype).
  *
  *   COS3.api.status()         -> { state, stage, error, containerRunning }
- *   COS3.api.defaultConfig()  -> default NOS3 configuration (see default_config.py), or { error }
- *   COS3.api.components()     -> components enabled in the current simulation (see current_config.py), or { error }
+ *   COS3.api.defaultConfig()  -> default NOS3 configuration (see server/mission_config/default.py), or { error }
+ *   COS3.api.components()     -> components enabled in the current simulation (see server/mission_config/current.py), or { error }
  *   COS3.api.launch(values) / stop() -> start the operation (then call watch)
  *   COS3.api.watch(onUpdate)  -> polls while starting/stopping, calls onUpdate(status) each time
  *
@@ -46,7 +46,7 @@
     try {
       return await api('GET', '/api/status');
     } catch (e) {
-      return { state: 'error', stage: '', error: "Can't reach the UI server. Is `python3 server.py` running?", containerRunning: false };
+      return { state: 'error', stage: '', error: "Can't reach the UI server. Is `python3 main.py` running?", containerRunning: false };
     }
   }
 
@@ -80,7 +80,7 @@
     // required, conversion }] }, or { error, status }
     command: (target, name) =>
       apiWithStatus('GET', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}`),
-    // Check parameter values on the server (commands/validation.py) without sending:
+    // Check parameter values on the server (server/commands/validation.py) without sending:
     // { errors: { name: message } } ({} = all valid), or { error, status }
     validateCommand: (target, name, values) =>
       apiWithStatus('POST', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}/validate`, { values }),

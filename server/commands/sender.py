@@ -5,7 +5,7 @@ Sends commands to COSMOS and records the outcome.
     record = sender.resend(record_id, confirm_hazardous=False)
 
 Each send:
-  1. validates the values (commands/validation.py) -> ValidationFailed(errors) if any are wrong
+  1. validates the values (server/commands/validation.py) -> ValidationFailed(errors) if any are wrong
   2. checks for hazards (hazardous command, or a hazardous state chosen)
      -> ConfirmationRequired(reason) unless confirm_hazardous is True
   3. sends with cmd(), or cmd_no_hazardous_check() when the operator confirmed a hazard
@@ -14,9 +14,9 @@ Each send:
 NotAuthenticated propagates (the operator has to log in again); nothing is recorded then.
 """
 
-from cosmos_client import CosmosError, CosmosRejected, CosmosUnavailable, HazardousCommand, NotAuthenticated
-from commands.history import Status
-from commands.validation import validate
+from server.commands.history import Status
+from server.commands.validation import validate
+from server.cosmos_client import CosmosError, CosmosRejected, CosmosUnavailable, HazardousCommand, NotAuthenticated
 
 
 class ValidationFailed(Exception):

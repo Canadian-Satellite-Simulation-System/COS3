@@ -1,7 +1,7 @@
 """
 Applies a custom configuration (scenario, components, start time, duration, orbit,
-tipoff, 42 graphics window, 42 ground stations) without changing any file tracked in the backend repo.
-Everything is written to backend/cfg/build/, which git ignores.
+tipoff, 42 graphics window, 42 ground stations) without changing any file tracked in the nos3 submodule.
+Everything is written to nos3/cfg/build/, which git ignores.
 
   1. write_spacecraft()    copy of the default spacecraft XML with our components, tipoff and 42 window,
                            passed to `make config SC1_CFG=build/cos3-sc-1.xml` (option built into NOS3)
@@ -14,16 +14,16 @@ import datetime
 import shutil
 import xml.etree.ElementTree as ET
 
-from constants import BACKEND_DIR
-from default_config import SCENARIOS, _read_orbit, _read_sim
+from server.mission_config.default import SCENARIOS, _read_orbit, _read_sim
+from server.settings import NOS3_REPO_DIR
 
-CFG_DIR = BACKEND_DIR / "cfg"
+CFG_DIR = NOS3_REPO_DIR / "cfg"
 BUILD_DIR = CFG_DIR / "build"
 
-# Passed to make config as SC1_CFG (path relative to backend/cfg/)
+# Passed to make config as SC1_CFG (path relative to nos3/cfg/)
 SPACECRAFT_FILE = "build/cos3-sc-1.xml"
 
-# Same epoch as backend/scripts/cfg/configure.py (J2000 seconds <-> UTC)
+# Same epoch as nos3/scripts/cfg/configure.py (J2000 seconds <-> UTC)
 J2000 = datetime.datetime(2000, 1, 1, 12, 0)
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 MIN_DURATION_S = 60
