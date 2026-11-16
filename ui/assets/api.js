@@ -4,12 +4,13 @@
  *
  *   COS3.api.status()         -> { state, stage, error, containerRunning }
  *   COS3.api.defaultConfig()  -> default NOS3 configuration (see default_config.py), or { error }
+ *   COS3.api.components()     -> components enabled in the current simulation (see current_config.py), or { error }
  *   COS3.api.launch(values) / stop() -> start the operation (then call watch)
  *   COS3.api.watch(onUpdate)  -> polls while starting/stopping, calls onUpdate(status) each time
  *
  * state: idle | starting | running | stopping | error
  */
-(function () {
+(function() {
   'use strict';
 
   const POLL_MS = 2000;
@@ -21,6 +22,20 @@
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
     return res.json();
+  }
+
+  // Like api(), but failures resolve to { error, status } so callers can react to e.g. 401
+  async function apiWithStatus(method, path, body) {
+    try {
+      const headers = { 'X-COS3': '1' };
+      if (body !== undefined) headers['Content-Type'] = 'application/json';
+      const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+      const data = await res.json();
+      // Keep any extra fields (e.g. errors, confirm) so callers can act on them
+      return res.ok ? data : { ...data, error: data.error || `Request failed (${res.status}).`, status: res.status };
+    } catch (e) {
+      return { error: "Can't reach the UI server.", status: 0 };
+    }
   }
 
   function isBusy(state) {
@@ -54,6 +69,36 @@
     watch,
     // Default NOS3 configuration; resolves to { error } if it can't be read
     defaultConfig: () => api('GET', '/api/config/default').catch(() => ({ error: "Can't reach the UI server." })),
+    // Components enabled in the current simulation: { spacecraft: [{ name, config, components: [{ key, name }] }] }
+    components: () => api('GET', '/api/components').catch(() => ({ error: "Can't reach the UI server." })),
+    // Commands for an enabled component: { component, path, commands: [{ target, name, description, hazardous }] }.
+    // path: 'DEBUG' or 'RADIO'. Resolves to { error, status } on failure (status 401 = log in to COSMOS).
+    commands: (componentKey, path) =>
+      apiWithStatus('GET', `/api/components/${encodeURIComponent(componentKey)}/commands?path=${encodeURIComponent(path)}`),
+    // One command: { target, name, description, hazardous, hazardous_description, parameters: [{ name,
+    // data_type, bit_size, minimum, maximum, default, units, description, states, hazardous_states,
+    // required, conversion }] }, or { error, status }
+    command: (target, name) =>
+      apiWithStatus('GET', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}`),
+    // Check parameter values on the server (commands/validation.py) without sending:
+    // { errors: { name: message } } ({} = all valid), or { error, status }
+    validateCommand: (target, name, values) =>
+      apiWithStatus('POST', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}/validate`, { values }),
+    // Send a command: { record } (record.status: sent | rejected | failed), or on failure
+    // { error, status, errors } (400: invalid values) / { error, status, confirm } (409: hazardous,
+    // send again with confirmHazardous = true)
+    sendCommand: (target, name, values, confirmHazardous = false) =>
+      apiWithStatus('POST', `/api/commands/${encodeURIComponent(target)}/${encodeURIComponent(name)}`,
+        { values, confirmHazardous }),
+    // Sent commands, newest first: { commands: [record] }, or { error, status }
+    history: () => apiWithStatus('GET', '/api/history'),
+    // Send a recorded command again: same answers as sendCommand
+    resend: (id, confirmHazardous = false) =>
+      apiWithStatus('POST', `/api/history/${encodeURIComponent(id)}/resend`, { confirmHazardous }),
+    // Whether the server has a COSMOS session: { loggedIn }, or { error, status }
+    session: () => apiWithStatus('GET', '/api/session'),
+    // Log in to COSMOS: resolves to { loggedIn: true } or { error, status }
+    login: (password) => apiWithStatus('POST', '/api/login', { password }),
     // values: null for the default configuration, or { startUtc, durationS, components }.
     // Resolves to { error } if the server refuses the values.
     launch: (values) => api('POST', '/api/launch', values ? { values } : undefined),

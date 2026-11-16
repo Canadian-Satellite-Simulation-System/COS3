@@ -5,15 +5,39 @@ const launchButton = document.getElementById("launch-button");
 const stopButton = document.getElementById("stop-button");
 const statusText = document.getElementById("status");
 const spinner = document.getElementById("spinner");
+const loginForm = document.getElementById("login-form");
+const passwordInput = document.getElementById("password");
+const loginError = document.getElementById("login-error");
+const launcher = document.getElementById("launcher");
 
 let current = { state: "idle" };
 let pollTimer = null;
 
-async function api(method, path) {
+async function api(method, path, body) {
   // The launcher rejects API requests without this header
-  const res = await fetch(path, { method, headers: { "X-COS3": "1" } });
+  const headers = { "X-COS3": "1" };
+  if (body) headers["Content-Type"] = "application/json";
+  const res = await fetch(path, { method, headers, body: body && JSON.stringify(body) });
   return res.json();
 }
+
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  loginError.textContent = "";
+  try {
+    const result = await api("POST", "/api/login", { password: passwordInput.value });
+    if (!result.loggedIn) {
+      loginError.textContent = result.error || "Login failed.";
+      return;
+    }
+  } catch {
+    loginError.textContent = "Can't reach the launcher. Is `python3 server.py` running?";
+    return;
+  }
+  loginForm.hidden = true;
+  launcher.hidden = false;
+  showLauncher();
+});
 
 function isBusy(state) {
   return state === "starting" || state === "stopping";
@@ -84,7 +108,9 @@ async function stop() {
   poll();
 }
 
-refresh().then((status) => {
-  // Pick up an operation that was already in progress when the page loaded
-  if (isBusy(status.state)) poll();
-});
+function showLauncher() {
+  refresh().then((status) => {
+    // Pick up an operation that was already in progress when the page loaded
+    if (isBusy(status.state)) poll();
+  });
+}
