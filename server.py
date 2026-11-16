@@ -26,7 +26,6 @@ API (requires the `X-COS3: 1` header):
                        with body {"values": {"startUtc", "durationS", "components"}}
     POST /api/stop     stop NOS3 and the container
     POST /api/login    body {"password"}: log in to COSMOS
-    POST /api/noop     body {"path": "DEBUG" | "RADIO"}: send GENERIC_MAG_NOOP_CC
 """
 
 import json
@@ -258,8 +257,6 @@ class Handler(SimpleHTTPRequestHandler):
 
         if path == "/api/login":
             return self._login()
-        if path == "/api/noop":
-            return self._send_noop()
         if match := COMMAND_VALIDATE.match(path):
             return self._validate_command(match["target"], match["name"])
         if match := COMMAND.match(path):

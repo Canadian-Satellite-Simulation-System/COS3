@@ -9,8 +9,6 @@ const loginForm = document.getElementById("login-form");
 const passwordInput = document.getElementById("password");
 const loginError = document.getElementById("login-error");
 const launcher = document.getElementById("launcher");
-const noopButton = document.getElementById("noop-button");
-const noopResult = document.getElementById("noop-result");
 
 let current = { state: "idle" };
 let pollTimer = null;
@@ -51,7 +49,6 @@ function render(status) {
   launchButton.textContent = status.state === "running" ? "Open COSMOS" : "Launch Simulation";
   launchButton.disabled = busy;
   stopButton.disabled = busy || !status.containerRunning;
-  noopButton.disabled = status.state !== "running";
   spinner.hidden = !busy;
 
   if (busy) {
@@ -109,30 +106,6 @@ async function stop() {
   render({ ...current, state: "stopping", stage: "Stopping…" });
   await api("POST", "/api/stop");
   poll();
-}
-
-let noopsSent = 0;
-let commandPath = "DEBUG";
-const pathButton = document.getElementById("path-button");
-
-function togglePath() {
-  commandPath = commandPath === "DEBUG" ? "RADIO" : "DEBUG";
-  pathButton.textContent = `Path: ${commandPath}`;
-}
-
-async function sendNoop() {
-  noopButton.disabled = true;
-  try {
-    const result = await api("POST", "/api/noop", { path: commandPath });
-    noopsSent += result.sent ? 1 : 0;
-    noopResult.textContent = result.sent
-      ? `No-op sent via ${result.path} (${noopsSent} this session). Check GENERIC_MAG_${result.path} GENERIC_MAG_HK_TLM CMD_COUNT in COSMOS.`
-      : result.error;
-  } catch {
-    noopResult.textContent = "Can't reach the launcher. Is `python3 server.py` running?";
-  } finally {
-    noopButton.disabled = current.state !== "running";
-  }
 }
 
 function showLauncher() {
