@@ -27,7 +27,7 @@ API (requires the `X-COS3: 1` header):
     POST /api/stop     stop NOS3 and the container
     POST /api/login    body {"password"}: log in to COSMOS
 """
-
+import cosmos_telemetry
 import json
 import re
 from functools import partial
@@ -114,6 +114,15 @@ class Handler(SimpleHTTPRequestHandler):
             self._component_commands(match["key"], query.get("path", ["DEBUG"])[0])
         elif match := COMMAND.match(path):
             self._command(match["target"], match["name"])
+        elif path.startswith("/api/telemetry/"):
+             key = path.removeprefix("/api/telemetry/")
+             if key not in cosmos_telemetry.COMPONENTS:
+                 self._send_json(404, {"error": f"Unknown component: {key}"})
+                 return
+             try:
+                 self._send_json(200, cosmos_telemetry.get_component(key))
+             except Exception as err:   # COSMOS down, timeout, bad password, unknown packet...
+                 self._send_json(502, {"error": f"COSMOS request failed: {err}"})
         else:
             self._send_json(404, {"error": "Not found"})
 
