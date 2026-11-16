@@ -74,7 +74,7 @@ class Component extends DCLogic {
       ['ERROR', 'COS3', 'Ground software lost connection to flight software']
     ].filter(([s]) => !off[s === 'WARN' ? 'WARNING' : s === 'CRIT' ? 'CRITICAL' : s])
      .map(([sev, src, msg]) => ({ sev, ss: S[sev], src, msg }));
-    return { yes: true, sevs, rows };
+    return { sevs, rows };
   }
 }
 

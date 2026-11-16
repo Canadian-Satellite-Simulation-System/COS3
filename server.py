@@ -1,41 +1,15 @@
 """
-Serves the COS3 UI (ui/ folder) and the API that starts/stops NOS3.
-
-Usage (in the Ubuntu terminal, with Docker Desktop running):
-    python3 ui_server.py   then open http://localhost:3001
-
-API (requires the `X-COS3: 1` header):
-    GET  /api/status          current simulation state
-    GET  /api/session         {"loggedIn"}: whether the server has a COSMOS session
-    GET  /api/config/default  default NOS3 configuration (read from backend/cfg)
-    GET  /api/components      components enabled in the current simulation
-    GET  /api/components/{key}/commands?path=DEBUG|RADIO
-                              commands for an enabled component (needs a COSMOS login)
-    GET  /api/commands/{target}/{name}
-                              one command and its settable parameters (needs a COSMOS login)
-    POST /api/commands/{target}/{name}/validate
-                              body {"values": {name: value}} -> {"errors": {name: message}}
-                              (commands/validation.py is the only place parameters are checked)
-    POST /api/commands/{target}/{name}
-                              send: body {"values", "confirmHazardous"} -> {"record"} (its "status" is
-                              sent | rejected | failed), 400 {"errors"}, or 409 {"confirm": reason}
-    GET  /api/history         {"commands": [record, ...]}, newest first
-    POST /api/history/{id}/resend
-                              body {"confirmHazardous"}: send a recorded command again (same answers as send)
-    POST /api/launch   start the container and NOS3: default configuration, or a custom one
-                       with body {"values": {"startUtc", "durationS", "components"}}
-    POST /api/stop     stop NOS3 and the container
-    POST /api/login    body {"password"}: log in to COSMOS
+Serves the COS3 UI  and the API that starts/stops NOS3.
 """
-import cosmos_telemetry
 import json
 import re
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+import cosmos_telemetry
 import custom_config
+from constants import ALLOWED_HOSTS, HOST, PORT, ROOT_DIR
 from cosmos_client import CosmosError, CosmosJSONAPIClient, CosmosRejected, CosmosUnavailable, NotAuthenticated
 from current_config import load_enabled_components
 from default_config import ConfigError, load_default_config
@@ -46,12 +20,7 @@ from commands.history import CommandHistory, UnknownRecord
 from commands.sender import CommandSender, ConfirmationRequired, ValidationFailed
 from commands.validation import validate
 
-ROOT_DIR = Path(__file__).resolve().parent
 UI_DIR = ROOT_DIR / "ui"
-
-HOST = "127.0.0.1"
-PORT = 3000
-ALLOWED_HOSTS = [f"localhost:{PORT}", f"127.0.0.1:{PORT}"]
 
 MAX_BODY_BYTES = 64 * 1024
 

@@ -4,8 +4,6 @@ Starts and stops NOS3 for the COS3 UI.
 NOS3 runs inside the nos3-desktop container (backend/docker/run.sh): `make launch`
 opens its terminal tabs and the 42 window on the container's virtual desktop
 (http://localhost:6080/vnc.html), not on the user's screen.
-
-Copied from server.py (the first launcher prototype), which will be removed.
 """
 
 import subprocess

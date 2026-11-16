@@ -26,14 +26,5 @@ SETUP_TIMEOUT_S = 2 * 60 * 60
 LAUNCH_TIMEOUT_S = 10 * 60
 STOP_TIMEOUT_S = 3 * 60
 
-STATIC_FILES = {
-    "/": ("index.html", "text/html"),
-    "/index.html": ("index.html", "text/html"),
-    "/main.js": ("main.js", "text/javascript"),
-}
-
-# API
-HEADERS = {"Content-Type": "application/json"}
-POST = "POST"
-GET = "GET"
+# COSMOS JSON API request timeout
 TIMEOUT_S = 5

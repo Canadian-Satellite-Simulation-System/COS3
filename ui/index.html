@@ -357,7 +357,7 @@ class Component extends DCLogic {
       // If the server is older than this page (no scenario list), show at least the current scenario
       scenarioOpts: (cfg && cfg.scenarios && cfg.scenarios.length
         ? cfg.scenarios
-        : [{ key: d.scenario, label: 'restart ui_server.py to choose another scenario' }]
+        : [{ key: d.scenario, label: 'restart server.py to choose another scenario' }]
       ).map((s) => ({ key: s.key, label: s.label, sel: s.key === d.scenario })),
       setScenario: (e) => this.setScenario(e.target.value),
       orbitEditable: this.orbitEditable(),
@@ -497,7 +497,7 @@ class Component extends DCLogic {
     // NOS3 has one ground link per mission: the ground software (COSMOS), always connected through the radio sim
     const nSta = cfg ? cfg.mission.gswLabel : '—';
     return Object.assign({
-      yes: true, modes, saved, rec,
+      modes, saved, rec,
       mDef: st.mode === 'default', mSaved: st.mode === 'saved', mCustom: st.mode === 'custom', mReplay: st.mode === 'replay',
       file: files[st.mode], nSats, nSta,
       toCustom: set({ mode: 'custom' })

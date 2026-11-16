@@ -88,7 +88,7 @@ class Component extends DCLogic {
     const comps = [1, 2, 3, 4].map((i) => ({ n: '[Component ' + i + ']' }));
     const apps = [1, 2, 3, 4].map((i) => '[App ' + i + ']').map((n) => ({ n, s: '[STATUS]', d: 'off', cls: this.state.app === n ? 'on' : '', pick: () => this.setState({ app: n }) }));
     const alerts = [1, 2, 3].map(() => ({ sev: '[LEVEL]', sevStyle: '', msg: '[Alert message]' }));
-    return { yes: true, comps, apps, alerts, sel: 'Selected: ' + this.state.app };
+    return { comps, apps, alerts, sel: 'Selected: ' + this.state.app };
   }
 }
 

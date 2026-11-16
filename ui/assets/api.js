@@ -1,5 +1,5 @@
 /*
- * COS3 – client for the ui_server.py API (start/stop NOS3).
+ * COS3 – client for the server.py API (start/stop NOS3).
  * Adapted from main.js (first launcher prototype).
  *
  *   COS3.api.status()         -> { state, stage, error, containerRunning }
@@ -46,7 +46,7 @@
     try {
       return await api('GET', '/api/status');
     } catch (e) {
-      return { state: 'error', stage: '', error: "Can't reach the UI server. Is `python3 ui_server.py` running?", containerRunning: false };
+      return { state: 'error', stage: '', error: "Can't reach the UI server. Is `python3 server.py` running?", containerRunning: false };
     }
   }
 

@@ -305,7 +305,7 @@
         const alarms = isCss ? [] : [{ l: 'RED', ls: red, item: 'WHEEL_2_SPEED' }, { l: 'YELLOW', ls: yel, item: 'MOMENTUM' }];
         const g = this.state.src === 'g';
         return {
-          yes: true, pages, items, alarms, sel: this.state.sel,
+          pages, items, alarms, sel: this.state.sel,
           css: this.state.css,
           cssRows: this.state.css.rows.map((r) => ({
             ...r,

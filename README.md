@@ -47,13 +47,13 @@ Forgetting the last three commands is the most common mistake: the backend is pu
 
 ## Run the UI
 
-The COS3 UI (the wireframe pages in `ui/`) is served by `ui_server.py`. Run it from the Ubuntu (WSL) terminal, with Docker Desktop running:
+The COS3 UI (the wireframe pages in `ui/`) is served by `server.py`. Run it from the Ubuntu (WSL) terminal, with Docker Desktop running:
 
 ```bash
-python3 ui_server.py
+python3 server.py
 ```
 
-Open http://localhost:3001. On the Setup Wizard, the **Default configuration** tab has a working **Launch simulation** button:
+Open http://localhost:3000. On the Setup Wizard, the **Default configuration** tab has a working **Launch simulation** button:
 
 - It starts the `nos3-desktop` container, runs `make config`, then any missing setup (`make prep`, `make`, `make gsw` for COSMOS), then `make launch`. The logic is in `launcher.py`.
 - Until a simulation runs, the sidebar shows only the Setup Wizard. Once COSMOS responds (http://localhost:2900), the page switches to the Dashboard and the sidebar shows the simulation pages instead of the wizard.
@@ -63,19 +63,8 @@ Open http://localhost:3001. On the Setup Wizard, the **Default configuration** t
 Notes:
 
 - Stop any NOS3 you started by hand first (`make stop`), otherwise ports 2900 and 6080 are already taken.
-- Don't run `server.py` at the same time: both would control the same container. `server.py` is the first prototype and will be removed.
 - The first launch builds NOS3 inside the container and can take a long time.
-
-## Run the simulation (first prototype)
-
-Start the launcher (needs Python 3 and Docker Desktop):
-
-```bash
-python3 server.py
-```
-
-Open http://localhost:3000 and click **Launch Simulation**. The launcher starts the NOS3 desktop container, runs `make launch` inside it, and opens COSMOS in the same tab once it responds at http://localhost:2900. To stop everything, go back to http://localhost:3000 and click **Stop Simulation**.
 
 ### First-time setup
 
-On the first launch, the launcher also runs `make config`, `make prep` and `make` inside the container, skipping any step that has already been done. This pulls several GB of images and builds everything, so it can take a while; give Docker Desktop at least 8 GB RAM and 4 CPUs. See the [backend](https://github.com/Canadian-Satellite-Simulation-System/COS3-backend) README and [docker/README.md](backend/docker/README.md) for details.
+On the first launch, the launcher also runs `make prep`, `make` and `make gsw` inside the container, skipping any step that has already been done. This pulls several GB of images and builds everything, so it can take a while; give Docker Desktop at least 8 GB RAM and 4 CPUs. See the [backend](https://github.com/Canadian-Satellite-Simulation-System/COS3-backend) README and [docker/README.md](backend/docker/README.md) for details.

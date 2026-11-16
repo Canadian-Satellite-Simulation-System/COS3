@@ -78,7 +78,7 @@ class Component extends DCLogic {
     const picked = list.filter((f) => sel[f]);
     const hw = this.state.src === 'hw';
     return {
-      yes: true, chans, selList: picked.length ? picked.join(', ') : 'None',
+      chans, selList: picked.length ? picked.join(', ') : 'None',
       hwCls: hw ? 'on' : '', simCls: hw ? '' : 'on',
       toHw: () => this.setState({ src: 'hw' }), toSim: () => this.setState({ src: 'sim' })
     };

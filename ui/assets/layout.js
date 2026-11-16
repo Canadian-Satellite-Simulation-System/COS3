@@ -6,7 +6,7 @@
  *   <div data-cos3="header" data-status="running"></div>      (or data-status="not-started")
  *   <div data-cos3="nav" data-active="dashboard"></div>
  *
- * Both follow the live simulation state from ui_server.py (/api/status):
+ * Both follow the live simulation state from server.py (/api/status):
  *   - not running: the sidebar shows only the Setup Wizard, and the other pages send you to it
  *   - running:     the sidebar shows the simulation pages, and the wizard sends you to the Dashboard
  */
@@ -45,7 +45,7 @@
   // States in which the simulation pages are available (otherwise only the wizard)
   const SIM_STATES = new Set(['running', 'stopping']);
 
-  // Live simulation state from ui_server.py; null until the first answer (or when the
+  // Live simulation state from server.py; null until the first answer (or when the
   // page is opened without the server, e.g. as a file), so the page's data-status shows.
   const STATUS_POLL_MS = 3000;
   let liveState = null;

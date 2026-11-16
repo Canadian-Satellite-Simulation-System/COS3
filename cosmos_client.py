@@ -106,10 +106,6 @@ class CosmosJSONAPIClient:
         """Every command definition for a target, with its parameters."""
         return self.call("get_all_cmds", target)
 
-    def get_cmd(self, target, name):
-        """One command definition."""
-        return self.call("get_cmd", target, name)
-
     def send_command(self, target, name, params=None, hazardous_confirmed=False):
         """Send a command with COSMOS's structured form: cmd(target, name, {param: value}).
 
