@@ -8,20 +8,21 @@
   <link
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap"
     rel="stylesheet" media="print" onload="this.media='all'">
+  <script src="assets/js/theme.js"></script>
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
     /* Styles used only on this page */
     th {
       text-align: left;
       font-weight: 600;
-      color: #444;
-      border-bottom: 1.5px solid #999;
+      color: var(--txt-2);
+      border-bottom: 1.5px solid var(--line);
       padding: 7px 12px;
-      background: #F4F4F4
+      background: var(--soft)
     }
 
     td {
-      border-bottom: 1px solid #DDD;
+      border-bottom: 1px solid var(--line);
       padding: 6px 12px
     }
 
@@ -29,12 +30,12 @@
     select {
       font: 400 13px 'IBM Plex Sans', sans-serif;
       height: 36px;
-      border: 1.5px solid #999;
+      border: 1.5px solid var(--line);
       border-radius: 4px;
       padding: 0 10px;
       box-sizing: border-box;
-      background: #fff;
-      color: #222;
+      background: var(--panel);
+      color: var(--txt);
       width: 100%
     }
 
@@ -45,8 +46,8 @@
     }
 
     .pnl {
-      background: #fff;
-      border: 1.5px solid #999;
+      background: var(--panel);
+      border: 1.5px solid var(--line);
       border-radius: 4px;
       box-sizing: border-box;
       padding: 16px;
@@ -70,30 +71,30 @@
       text-align: left;
       cursor: pointer;
       font-family: 'IBM Plex Mono', monospace;
-      color: #222
+      color: var(--txt)
     }
 
     .pk.on {
-      background: #222;
-      color: #fff
+      background: var(--accent);
+      color: var(--on-accent)
     }
 
     .st {
       font: 600 11px 'IBM Plex Mono', monospace;
-      border: 1.5px solid #222;
+      border: 1.5px solid var(--line-strong);
       padding: 1px 6px;
       border-radius: 3px
     }
 
     .hint {
       margin: 0;
-      color: #555;
+      color: var(--txt-2);
       font-size: 13px
     }
 
     .msg-err {
       margin: 0;
-      color: #b00020;
+      color: var(--danger);
       font-size: 13px
     }
 
@@ -115,20 +116,20 @@
     .path-switch {
       display: flex;
       width: 220px;
-      border: 1.5px solid #333;
+      border: 1.5px solid var(--line-strong);
       border-radius: 4px;
       overflow: hidden;
-      background: #fff
+      background: var(--panel)
     }
 
     .path-switch .seg {
       height: 32px;
       font-size: 13px;
-      border-right-color: #333
+      border-right-color: var(--line-strong)
     }
 
     .path-switch .seg:focus-visible {
-      outline: 2px solid #222;
+      outline: 2px solid var(--accent);
       outline-offset: -4px
     }
 
@@ -146,15 +147,15 @@
       flex-direction: column;
       gap: 4px;
       padding-bottom: 12px;
-      border-bottom: 1px solid #DDD
+      border-bottom: 1px solid var(--line)
     }
 
     .hazard {
-      border: 1.5px solid #222;
+      border: 1.5px solid var(--line-strong);
       border-left-width: 6px;
       border-radius: 4px;
       padding: 10px 12px;
-      background: #FFF4E5;
+      background: var(--warn-bg);
       font-size: 13px
     }
 
@@ -169,22 +170,22 @@
     }
 
     .pcard {
-      border: 1.5px solid #CCC;
+      border: 1.5px solid var(--line);
       border-radius: 4px;
       padding: 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      background: #fff
+      background: var(--panel)
     }
 
     .pcard.bad {
-      border-color: #b00020
+      border-color: var(--danger)
     }
 
     .pcard label {
       font: 600 13px 'IBM Plex Mono', monospace;
-      color: #222
+      color: var(--txt)
     }
 
     .pcard input.mono {
@@ -192,14 +193,14 @@
     }
 
     .pcard [aria-invalid="true"] {
-      border-color: #b00020
+      border-color: var(--danger)
     }
 
     .req {
       font: 600 10px 'IBM Plex Sans', sans-serif;
       text-transform: uppercase;
       letter-spacing: .05em;
-      color: #b00020
+      color: var(--danger)
     }
 
     .meta {
@@ -211,7 +212,7 @@
     }
 
     .meta dt {
-      color: #555
+      color: var(--txt-2)
     }
 
     .meta dd {
@@ -246,7 +247,7 @@
 
     .stat {
       font: 600 11px 'IBM Plex Mono', monospace;
-      border: 1.5px solid #222;
+      border: 1.5px solid var(--line-strong);
       padding: 1px 6px;
       border-radius: 3px;
       text-transform: uppercase;
@@ -254,26 +255,26 @@
     }
 
     .stat.sent {
-      background: #222;
-      color: #fff
+      background: var(--accent);
+      color: var(--on-accent)
     }
 
     .stat.rejected {
       border-style: dashed;
-      border-color: #b00020;
-      color: #b00020
+      border-color: var(--danger);
+      color: var(--danger)
     }
 
     .stat.failed {
-      border-color: #b00020;
-      background: #b00020;
-      color: #fff
+      border-color: var(--danger);
+      background: var(--danger);
+      color: var(--on-danger)
     }
 
     .cactions {
       gap: 12px;
       padding-top: 12px;
-      border-top: 1px solid #DDD
+      border-top: 1px solid var(--line)
     }
   </style>
 </head>
@@ -282,7 +283,7 @@
   <div id="app"></div>
   <template id="page">
     <div class="wf"
-      style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
+      style="width:100%;height:100%;display:flex;flex-direction:column;background:var(--bg);overflow:hidden">
       <div data-cos3="header" data-status="running"></div>
       <div style="flex:1;display:flex;min-height:0">
         <div data-cos3="nav" data-active="commands"></div>
@@ -318,10 +319,10 @@
               <input id="component-search" type="search" placeholder="Search components" aria-label="Search components"
                 value="{{compQuery}}" onInput="{{searchComps}}">
               <template data-if="{{loading}}">
-                <p style="margin:0;color:#555;font-size:13px">Loading components…</p>
+                <p style="margin:0;color:var(--txt-2);font-size:13px">Loading components…</p>
               </template>
               <template data-if="{{error}}">
-                <p role="alert" style="margin:0;color:#b00020;font-size:13px">{{error}}</p>
+                <p role="alert" style="margin:0;color:var(--danger);font-size:13px">{{error}}</p>
               </template>
               <template data-if="{{noCompMatches}}">
                 <p class="hint">No matching components.</p>

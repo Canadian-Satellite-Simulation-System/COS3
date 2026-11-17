@@ -149,14 +149,15 @@
     for (const fn of window.COS3.onRender || []) fn(app);
   }
 
-  // Scales the 1440 x 900 page so it always fits the browser window (no manual zoom needed).
-  const PAGE_W = 1440, PAGE_H = 900;
+  // The page always fills the whole browser window (no blank area around it).
+  // Windows narrower than the 1440px design are scaled down; wider or taller ones get more room.
+  const PAGE_W = 1440;
   function fitToWindow() {
     if (!app) return;
-    const scale = Math.min(1, window.innerWidth / PAGE_W, window.innerHeight / PAGE_H);
+    const scale = Math.min(1, window.innerWidth / PAGE_W);
     app.style.transform = 'scale(' + scale + ')';
-    app.style.marginLeft = Math.max(0, (window.innerWidth - PAGE_W * scale) / 2) + 'px';
-    app.style.marginTop = Math.max(0, (window.innerHeight - PAGE_H * scale) / 2) + 'px';
+    app.style.width = window.innerWidth / scale + 'px';
+    app.style.height = window.innerHeight / scale + 'px';
   }
 
   function mount(Component, props) {

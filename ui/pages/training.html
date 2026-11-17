@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=1440">
 <title>COS3 – Training Scenarios</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<script src="assets/js/theme.js"></script>
 <link rel="stylesheet" href="assets/css/style.css">
 <style>
 /* Styles used only on this page */
-input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px solid #999;border-radius:4px;padding:0 10px;box-sizing:border-box;background:#fff;color:#222;width:100%}
+input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px solid var(--line);border-radius:4px;padding:0 10px;box-sizing:border-box;background:var(--panel);color:var(--txt);width:100%}
 .fld{display:flex;flex-direction:column;gap:5px}
-.pnl{background:#fff;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.pnl{background:var(--panel);border:1.5px solid var(--line);border-radius:4px;box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
 </style>
 </head>
 <body>
@@ -19,7 +20,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 <!-- Page markup. {{name}} values come from renderVals() in the script below.
      Header and sidebar are shared: see assets/js/layout.js. -->
 <template id="page">
-<div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
+<div class="wf" style="width:100%;height:100%;display:flex;flex-direction:column;background:var(--bg);overflow:hidden">
 <div data-cos3="header" data-status="running"></div>
 <div style="flex:1;display:flex;min-height:0">
 <div data-cos3="nav" data-active="training"></div>
@@ -32,7 +33,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 <template data-for="{{scen}}" data-as="s">
 <div style="border:{{s.border}};border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:8px">
 <span style="font-weight:600;font-size:14px">{{s.name}}</span>
-<span style="font-size:12px;color:#555">{{s.desc}}</span>
+<span style="font-size:12px;color:var(--txt-2)">{{s.desc}}</span>
 <div class="row"><span class="chip" style="border-style:dashed">{{s.lvl}}</span><div style="flex:1"></div><button class="btn sm" onClick="{{s.load}}">Load</button><button class="btn sm primary" onClick="{{s.load}}">▶ Run</button></div>
 </div>
 </template>
@@ -53,9 +54,9 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 <div class="fld"><label for="ft">Fault type</label><select id="ft"><option>Stuck value</option><option>No response</option><option>Noise</option><option>Bias</option></select></div>
 <button class="btn primary">Inject fault</button>
 </div>
-<div style="height:1px;background:#DDD"></div>
+<div style="height:1px;background:var(--line)"></div>
 <div class="row"><span class="h" style="flex:1">Active faults</span><button class="btn sm">Clear all</button></div>
-<div class="row" style="border:1px solid #CCC;border-radius:4px;padding:8px 12px"><span style="font-weight:600;font-size:13px;flex:1">Reaction wheel · Stuck value</span><span class="mono" style="font-size:12px;color:#555">since T+ [mm:ss]</span></div>
+<div class="row" style="border:1px solid var(--line);border-radius:4px;padding:8px 12px"><span style="font-weight:600;font-size:13px;flex:1">Reaction wheel · Stuck value</span><span class="mono" style="font-size:12px;color:var(--txt-2)">since T+ [mm:ss]</span></div>
 <div style="flex:1"></div>
 
 </section>
@@ -77,7 +78,7 @@ class Component extends DCLogic {
       ['Reaction wheel failure', 'A wheel stops responding; recover attitude control.', 'INTERMEDIATE'],
       ['Low power / safe mode', 'Battery drops in eclipse; manage safe mode.', 'ADVANCED']
     ];
-    const scen = list.map(([name, desc, lvl]) => ({ name, desc, lvl, border: name === this.state.cur ? '2.5px solid #222' : '1px solid #BBB', load: () => this.setState({ cur: name }) }));
+    const scen = list.map(([name, desc, lvl]) => ({ name, desc, lvl, border: name === this.state.cur ? '2.5px solid var(--accent)' : '1px solid var(--line)', load: () => this.setState({ cur: name }) }));
     const marks = [
       { x: '3%', t: 'T+00:00', label: 'Start', shape: '' },
       { x: '25%', t: 'T+05:00', label: 'Fault injected', shape: 'transform:rotate(45deg);' },
