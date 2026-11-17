@@ -40,7 +40,7 @@
       this.root.innerHTML = `
         <div class="chart-head">
           <span class="h"></span>
-          <button class="btn sm" type="button">Expand</button>
+          <button class="btn sm" type="button"><span class="i i-expand"></span><span>Expand</span></button>
         </div>
         <div class="plot"><canvas></canvas></div>`;
 
@@ -55,6 +55,11 @@
       this.updateTitle();
     }
 
+    setBtn(icon, label) {
+      this.btn.firstElementChild.className = 'i i-' + icon;
+      this.btn.lastElementChild.textContent = label;
+    }
+
     updateTitle() { this.titleEl.textContent = `${this.title}: ${selected}`; }
 
     // Expanded view: the chart moves into an overlay outside the page, so page re-renders don't affect it
@@ -63,14 +68,14 @@
       this.expanded = true;
       overlay.appendChild(this.root);
       overlay.classList.add('on');
-      this.btn.textContent = 'Close';
+      this.setBtn('cross', 'Close');
       this.draw();
     }
 
     collapse() {
       this.expanded = false;
       overlay.classList.remove('on');
-      this.btn.textContent = 'Expand';
+      this.setBtn('expand', 'Expand');
       attach();
     }
 
@@ -86,7 +91,9 @@
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, w, h);
       g.font = '11px "IBM Plex Mono", monospace';
-      g.fillStyle = '#555';
+      const css = getComputedStyle(document.documentElement);
+      const col = (name) => css.getPropertyValue(name).trim();
+      g.fillStyle = col('--txt-2');
 
       const pts = history.map((s) => ({ t: s.t, v: s[this.field][selected] })).filter((p) => p.v != null);
       const L = 56, R = 12, T = 8, B = 22, pw = w - L - R, ph = h - T - B;
@@ -101,7 +108,7 @@
       const Y = (v) => T + (1 - (v - lo) / (hi - lo)) * ph;
 
       // Grid and axis labels
-      g.strokeStyle = '#E2E2E2'; g.lineWidth = 1;
+      g.strokeStyle = col('--line'); g.lineWidth = 1;
       for (let i = 0; i <= 4; i++) {
         const v = lo + (hi - lo) * i / 4, y = Y(v);
         g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke();
@@ -111,7 +118,7 @@
       g.textAlign = 'right'; g.fillText(`${hms(t1)} UTC`, L + pw, h - 6);
 
       // Line
-      g.strokeStyle = '#222'; g.lineWidth = 1.5; g.beginPath();
+      g.strokeStyle = col('--accent'); g.lineWidth = 1.5; g.beginPath();
       pts.forEach((p, i) => (i ? g.lineTo(X(p.t), Y(p.v)) : g.moveTo(X(p.t), Y(p.v))));
       g.stroke();
 
@@ -120,17 +127,17 @@
         const tm = t0 + (this.hoverX - L) / pw * (t1 - t0);
         const p = pts.reduce((a, b) => (Math.abs(b.t - tm) < Math.abs(a.t - tm) ? b : a));
         const x = X(p.t), y = Y(p.v);
-        g.strokeStyle = '#999'; g.setLineDash([3, 3]);
+        g.strokeStyle = col('--line-strong'); g.setLineDash([3, 3]);
         g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + ph); g.stroke(); g.setLineDash([]);
-        g.fillStyle = '#222'; g.beginPath(); g.arc(x, y, 3.5, 0, 2 * Math.PI); g.fill();
+        g.fillStyle = col('--accent'); g.beginPath(); g.arc(x, y, 3.5, 0, 2 * Math.PI); g.fill();
 
         const label = `${hms(p.t)}  ${p.v.toFixed(this.digits)} ${this.units}`;
         g.font = '12px "IBM Plex Mono", monospace';
         const tw = g.measureText(label).width + 12;
         const bx = x + 8 + tw > L + pw ? x - 8 - tw : x + 8;
         const by = Math.max(T, y - 28);
-        g.fillStyle = '#222'; g.fillRect(bx, by, tw, 20);
-        g.fillStyle = '#fff'; g.textAlign = 'left'; g.fillText(label, bx + 6, by + 14);
+        g.fillStyle = col('--accent-deep'); g.fillRect(bx, by, tw, 20);
+        g.fillStyle = col('--on-accent'); g.textAlign = 'left'; g.fillText(label, bx + 6, by + 14);
       }
     }
   }
@@ -162,6 +169,7 @@
         new LiveChart({ slotId: 'css-chart-value', title: 'Converted value', field: 'value', units: 'V', digits: 3 })
       ];
       attach();
+      window.addEventListener('cos3:theme', () => charts.forEach((c) => c.draw()));
       new MutationObserver(attach).observe(document.getElementById('app'), { childList: true, subtree: true });
     },
 

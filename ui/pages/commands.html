@@ -8,20 +8,21 @@
   <link
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap"
     rel="stylesheet" media="print" onload="this.media='all'">
+  <script src="assets/js/theme.js"></script>
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
     /* Styles used only on this page */
     th {
       text-align: left;
       font-weight: 600;
-      color: #444;
-      border-bottom: 1.5px solid #999;
+      color: var(--txt-2);
+      border-bottom: 1.5px solid var(--line);
       padding: 7px 12px;
-      background: #F4F4F4
+      background: var(--soft)
     }
 
     td {
-      border-bottom: 1px solid #DDD;
+      border-bottom: 1px solid var(--line);
       padding: 6px 12px
     }
 
@@ -29,12 +30,12 @@
     select {
       font: 400 13px 'IBM Plex Sans', sans-serif;
       height: 36px;
-      border: 1.5px solid #999;
+      border: 1.5px solid var(--line);
       border-radius: 4px;
       padding: 0 10px;
       box-sizing: border-box;
-      background: #fff;
-      color: #222;
+      background: var(--panel);
+      color: var(--txt);
       width: 100%
     }
 
@@ -45,8 +46,8 @@
     }
 
     .pnl {
-      background: #fff;
-      border: 1.5px solid #999;
+      background: var(--panel);
+      border: 1.5px solid var(--line);
       border-radius: 4px;
       box-sizing: border-box;
       padding: 16px;
@@ -70,31 +71,38 @@
       text-align: left;
       cursor: pointer;
       font-family: 'IBM Plex Mono', monospace;
-      color: #222
+      color: var(--txt)
     }
 
     .pk.on {
-      background: #222;
-      color: #fff
+      background: var(--accent);
+      color: var(--on-accent)
     }
 
     .st {
       font: 600 11px 'IBM Plex Mono', monospace;
-      border: 1.5px solid #222;
+      border: 1.5px solid var(--line-strong);
       padding: 1px 6px;
       border-radius: 3px
     }
 
     .hint {
       margin: 0;
-      color: #555;
+      color: var(--txt-2);
       font-size: 13px
     }
 
     .msg-err {
       margin: 0;
-      color: #b00020;
+      color: var(--danger);
       font-size: 13px
+    }
+
+    .i-slot {
+      display: inline-block;
+      width: 14px;
+      margin-right: 8px;
+      flex: none
     }
 
     .lst {
@@ -115,20 +123,20 @@
     .path-switch {
       display: flex;
       width: 220px;
-      border: 1.5px solid #333;
+      border: 1.5px solid var(--line-strong);
       border-radius: 4px;
       overflow: hidden;
-      background: #fff
+      background: var(--panel)
     }
 
     .path-switch .seg {
       height: 32px;
       font-size: 13px;
-      border-right-color: #333
+      border-right-color: var(--line-strong)
     }
 
     .path-switch .seg:focus-visible {
-      outline: 2px solid #222;
+      outline: 2px solid var(--accent);
       outline-offset: -4px
     }
 
@@ -146,15 +154,15 @@
       flex-direction: column;
       gap: 4px;
       padding-bottom: 12px;
-      border-bottom: 1px solid #DDD
+      border-bottom: 1px solid var(--line)
     }
 
     .hazard {
-      border: 1.5px solid #222;
+      border: 1.5px solid var(--line-strong);
       border-left-width: 6px;
       border-radius: 4px;
       padding: 10px 12px;
-      background: #FFF4E5;
+      background: var(--warn-bg);
       font-size: 13px
     }
 
@@ -169,22 +177,22 @@
     }
 
     .pcard {
-      border: 1.5px solid #CCC;
+      border: 1.5px solid var(--line);
       border-radius: 4px;
       padding: 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      background: #fff
+      background: var(--panel)
     }
 
     .pcard.bad {
-      border-color: #b00020
+      border-color: var(--danger)
     }
 
     .pcard label {
       font: 600 13px 'IBM Plex Mono', monospace;
-      color: #222
+      color: var(--txt)
     }
 
     .pcard input.mono {
@@ -192,14 +200,14 @@
     }
 
     .pcard [aria-invalid="true"] {
-      border-color: #b00020
+      border-color: var(--danger)
     }
 
     .req {
       font: 600 10px 'IBM Plex Sans', sans-serif;
       text-transform: uppercase;
       letter-spacing: .05em;
-      color: #b00020
+      color: var(--danger)
     }
 
     .meta {
@@ -211,7 +219,7 @@
     }
 
     .meta dt {
-      color: #555
+      color: var(--txt-2)
     }
 
     .meta dd {
@@ -246,7 +254,7 @@
 
     .stat {
       font: 600 11px 'IBM Plex Mono', monospace;
-      border: 1.5px solid #222;
+      border: 1.5px solid var(--line-strong);
       padding: 1px 6px;
       border-radius: 3px;
       text-transform: uppercase;
@@ -254,27 +262,43 @@
     }
 
     .stat.sent {
-      background: #222;
-      color: #fff
+      background: var(--accent);
+      color: var(--on-accent)
     }
 
     .stat.rejected {
       border-style: dashed;
-      border-color: #b00020;
-      color: #b00020
+      border-color: var(--danger);
+      color: var(--danger)
     }
 
     .stat.failed {
-      border-color: #b00020;
-      background: #b00020;
-      color: #fff
+      border-color: var(--danger);
+      background: var(--danger);
+      color: var(--on-danger)
     }
 
     .cactions {
       gap: 12px;
       padding-top: 12px;
-      border-top: 1px solid #DDD
+      border-top: 1px solid var(--line)
     }
+
+    .stat.sent::before, .stat.rejected::before, .stat.failed::before, .msg-err::before, .hazard strong::before {
+      content: "";
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 5px;
+      vertical-align: -2px;
+      background: currentColor;
+      -webkit-mask: var(--i) center/contain no-repeat;
+      mask: var(--i) center/contain no-repeat
+    }
+
+    .stat.sent::before { --i: var(--i-check) }
+    .stat.rejected::before, .stat.failed::before { --i: var(--i-cross) }
+    .msg-err::before, .hazard strong::before { --i: var(--i-warn) }
   </style>
 </head>
 
@@ -282,7 +306,7 @@
   <div id="app"></div>
   <template id="page">
     <div class="wf"
-      style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
+      style="width:100%;height:100%;display:flex;flex-direction:column;background:var(--bg);overflow:hidden">
       <div data-cos3="header" data-status="running"></div>
       <div style="flex:1;display:flex;min-height:0">
         <div data-cos3="nav" data-active="commands"></div>
@@ -315,28 +339,31 @@
           <div style="flex:1;min-height:0;display:flex;gap:16px">
             <section class="pnl" style="width:250px;flex:none" aria-label="Enabled components">
               <div style="font-weight:600">Components</div>
-              <input id="component-search" type="search" placeholder="Search components" aria-label="Search components"
-                value="{{compQuery}}" onInput="{{searchComps}}">
+              <span class="srch"><span class="i i-search"></span><input id="component-search" type="search" placeholder="Search components" aria-label="Search components"
+                value="{{compQuery}}" onInput="{{searchComps}}"></span>
               <template data-if="{{loading}}">
-                <p style="margin:0;color:#555;font-size:13px">Loading components…</p>
+                <p style="margin:0;color:var(--txt-2);font-size:13px">Loading components…</p>
               </template>
               <template data-if="{{error}}">
-                <p role="alert" style="margin:0;color:#b00020;font-size:13px">{{error}}</p>
+                <p role="alert" style="margin:0;color:var(--danger);font-size:13px">{{error}}</p>
               </template>
               <template data-if="{{noCompMatches}}">
                 <p class="hint">No matching components.</p>
               </template>
               <div class="lst">
                 <template data-for="{{comps}}" data-as="c">
-                  <button class="pk {{c.cls}}" onClick="{{c.pick}}" title="{{c.key}}">{{c.name}}</button>
+                  <button class="pk {{c.cls}}" onClick="{{c.pick}}" title="{{c.key}}"><span class="{{c.ico}}"></span>{{c.name}}</button>
                 </template>
               </div>
+              <template data-if="{{canToggle}}">
+                <button type="button" class="lnk" style="align-self:flex-start" onClick="{{toggleAll}}">{{toggleLabel}}</button>
+              </template>
             </section>
 
             <section class="pnl" style="width:330px;flex:none" aria-label="Commands">
               <div style="font-weight:600">Commands</div>
-              <input id="command-search" type="search" placeholder="Search commands" aria-label="Search commands"
-                value="{{cmdQuery}}" onInput="{{searchCmds}}" disabled="{{noComponent}}">
+              <span class="srch"><span class="i i-search"></span><input id="command-search" type="search" placeholder="Search commands" aria-label="Search commands"
+                value="{{cmdQuery}}" onInput="{{searchCmds}}" disabled="{{noComponent}}"></span>
               <template data-if="{{noComponent}}">
                 <p class="hint">Select a component.</p>
               </template>
@@ -537,6 +564,7 @@
       failed: (r) => r.error
     };
     const STATUS_LABELS = {sent: 'Sent', rejected: 'Rejected', failed: 'Failed'};
+    const COMPONENT_ICONS = {rw: 'wheel', torquer: 'magnet', css: 'sun', radio: 'link', eps: 'battery'};
 
     // A history record -> the values its table row shows. `componentNames` maps component key -> name.
     function historyRow(r, componentNames, resend) {
@@ -565,7 +593,7 @@
           loading: true, error: null, spacecraft: null, sel: null,
           path: 'DEBUG',
           cmds: null, cmdLoading: false, cmdError: null,
-          compQuery: '', cmdQuery: '',
+          compQuery: '', cmdQuery: '', showAll: false,
           ...EMPTY_FORM,
           busy: false, 
           confirm: null, 
@@ -736,9 +764,13 @@
         const sc = s.spacecraft;
         const list = sc ? sc.components : [];
         const componentNames = Object.fromEntries(list.map((c) => [c.key, c.name]));
-        const comps = list.filter((c) => matches(s.compQuery, c.name, c.key)).map((c) => ({
+        const mainList = list.filter((c) => COMPONENT_ICONS[c.key] || c.key === s.sel);
+        const canToggle = mainList.length > 0 && mainList.length < list.length;
+        const shown = s.showAll || !canToggle ? list : mainList;
+        const comps = shown.filter((c) => matches(s.compQuery, c.name, c.key)).map((c) => ({
           key: c.key,
           name: c.name,
+          ico: COMPONENT_ICONS[c.key] ? 'i i-' + COMPONENT_ICONS[c.key] : 'i-slot',
           cls: c.key === s.sel ? 'on' : '',
           pick: () => {
             if (c.key === s.sel) return;
@@ -784,6 +816,9 @@
           compQuery: s.compQuery,
           searchComps: this.searchComps,
           noCompMatches: list.length > 0 && comps.length === 0,
+          canToggle,
+          toggleAll: () => this.setState({showAll: !s.showAll}),
+          toggleLabel: s.showAll ? 'Show main components only' : `Show all (${list.length})`,
 
           cmds,
           cmdCount: cmds.length,

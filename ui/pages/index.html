@@ -5,20 +5,22 @@
 <meta name="viewport" content="width=1440">
 <title>COS3 – Setup Wizard</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<script src="assets/js/theme.js"></script>
 <link rel="stylesheet" href="assets/css/style.css">
 <style>
 /* Styles used only on this page */
-input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px solid #999;border-radius:4px;padding:0 10px;box-sizing:border-box;background:#fff;color:#222;width:100%}
+input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px solid var(--line);border-radius:4px;padding:0 10px;box-sizing:border-box;background:var(--panel);color:var(--txt);width:100%}
 .fld{display:flex;flex-direction:column;gap:4px}
-.pnl{background:#fff;border:1.5px solid #999;border-radius:4px;box-sizing:border-box;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-height:0}
-.kv{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 0;border-bottom:1px solid #E2E2E2}
-.dc{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.pnl{background:var(--panel);border:1.5px solid var(--line);border-radius:4px;box-sizing:border-box;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-height:0}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
+.dc{padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--tile);border-color:transparent}
 .dc .kv{padding:4px 0}
 .dc .kv:last-child{border-bottom:0}
-.src{font-size:11px;color:#777}
+.dc .i{color:var(--accent)}
+.src{font-size:11px;color:var(--txt-2)}
 .gs{display:flex;align-items:center;gap:6px;min-height:30px}
 .gs input,.gs select{height:28px}
-.cchip{font:500 12px 'IBM Plex Sans',sans-serif;border:1.5px solid #222;padding:2px 8px;border-radius:3px}
+.cchip{font:500 12px 'IBM Plex Sans',sans-serif;border:1.5px solid var(--line-strong);padding:2px 8px;border-radius:3px}
 </style>
 </head>
 <body>
@@ -27,7 +29,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 <!-- Page markup. {{name}} values come from renderVals() in the script below.
      Header and sidebar are shared: see assets/js/layout.js. -->
 <template id="page">
-<div class="wf" style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F4F4F4;overflow:hidden">
+<div class="wf" style="width:100%;height:100%;display:flex;flex-direction:column;background:var(--bg);overflow:hidden">
 <div data-cos3="header" data-status="not-started"></div>
 <div style="flex:1;display:flex;min-height:0">
 <div data-cos3="nav" data-active="wizard"></div>
@@ -52,47 +54,47 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 
 <template data-if="{{mDef}}">
 <section class="pnl" style="flex:1;overflow:auto">
-<div class="row"><span class="h" style="flex:1">Default configuration</span><span style="font-size:12px;color:#555">Runs as is, no changes needed</span><span class="tag">◆ backend/cfg · make config</span></div>
-<template data-if="{{cfgLoading}}"><span style="font-size:13px;color:#555">Loading the default configuration…</span></template>
+<div class="row"><span class="h" style="flex:1">Default configuration</span><span style="font-size:12px;color:var(--txt-2)">Runs as is, no changes needed</span><span class="tag">◆ backend/cfg · make config</span></div>
+<template data-if="{{cfgLoading}}"><span style="font-size:13px;color:var(--txt-2)">Loading the default configuration…</span></template>
 <template data-if="{{cfgError}}"><div class="box" style="padding:12px 14px;border-style:dashed;font-size:13px">{{cfgError}}</div></template>
 <template data-if="{{cfgReady}}">
 <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
 
 <div class="box dc">
-<div class="row"><span class="h" style="font-size:11px;flex:1">Mission</span><span class="mono src">{{cfgFile}}</span></div>
+<div class="row"><span class="i i-flag"></span><span class="h" style="font-size:11px;flex:1">Mission</span><span class="mono src">{{cfgFile}}</span></div>
 <div><template data-for="{{missionRows}}" data-as="k"><div class="kv"><span>{{k.l}}</span><span>{{k.v}}</span></div></template></div>
 </div>
 
 <div class="box dc">
-<div class="row"><span class="h" style="font-size:11px;flex:1">Satellites · orbit</span><span class="mono src">{{satFile}}</span></div>
+<div class="row"><span class="i i-sat"></span><span class="h" style="font-size:11px;flex:1">Satellites · orbit</span><span class="mono src">{{satFile}}</span></div>
 <div><template data-for="{{satRows}}" data-as="k"><div class="kv"><span>{{k.l}}</span><span>{{k.v}}</span></div></template></div>
 </div>
 
 <div class="box dc">
-<div class="row"><span class="h" style="font-size:11px;flex:1">Components · {{compCount}}</span><span class="mono src">{{satFile}}</span></div>
+<div class="row"><span class="i i-layers"></span><span class="h" style="font-size:11px;flex:1">Components · {{compCount}}</span><span class="mono src">{{satFile}}</span></div>
 <div style="display:flex;flex-wrap:wrap;gap:6px">
 <template data-for="{{compsOn}}" data-as="c"><span class="cchip">{{c}}</span></template>
 </div>
-<template data-if="{{compsOff}}"><span style="font-size:12px;color:#555">Disabled: {{compsOff}}</span></template>
+<template data-if="{{compsOff}}"><span style="font-size:12px;color:var(--txt-2)">Disabled: {{compsOff}}</span></template>
 </div>
 
 <div class="box dc">
-<div class="row"><span class="h" style="font-size:11px;flex:1">Ground link</span><span class="mono src">launch.sh</span></div>
+<div class="row"><span class="i i-link"></span><span class="h" style="font-size:11px;flex:1">Ground link</span><span class="mono src">launch.sh</span></div>
 <div>
 <div class="kv"><span>Ground software</span><span>{{gswLabel}}</span></div>
 <div class="kv"><span>Connection</span><span>Radio sim, always connected</span></div>
 </div>
 <div class="row" style="margin-top:4px"><span class="h" style="font-size:11px;flex:1">42 display markers · {{staCount}} (visual only)</span><span class="mono src">{{simFile}}</span></div>
-<div><template data-for="{{stations}}" data-as="g"><div class="kv" style="color:#555"><span>{{g.name}}</span><span>{{g.pos}}</span></div></template></div>
+<div><template data-for="{{stations}}" data-as="g"><div class="kv" style="color:var(--txt-2)"><span>{{g.name}}</span><span>{{g.pos}}</span></div></template></div>
 </div>
 
 <div class="box dc">
-<span class="h" style="font-size:11px">Fault scenario</span>
+<div class="row"><span class="i i-bolt"></span><span class="h" style="font-size:11px">Fault scenario</span></div>
 <span style="font-size:13px">None</span>
 </div>
 
 <div class="box dc">
-<span class="h" style="font-size:11px">Hardware-in-the-Loop</span>
+<div class="row"><span class="i i-chip"></span><span class="h" style="font-size:11px">Hardware-in-the-Loop</span></div>
 <span style="font-size:13px">Off</span>
 </div>
 
@@ -130,7 +132,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 <template data-for="{{stationRows}}" data-as="g">
 <div class="gs">
 <input type="checkbox" checked="{{g.on}}" onChange="{{g.toggle}}" aria-label="Show {{g.name}}">
-<template data-if="{{g.fixed}}"><span style="flex:1;font-size:13px">{{g.name}}</span><span class="mono" style="font-size:12px;color:#555">{{g.pos}}</span></template>
+<template data-if="{{g.fixed}}"><span style="flex:1;font-size:13px">{{g.name}}</span><span class="mono" style="font-size:12px;color:var(--txt-2)">{{g.pos}}</span></template>
 <template data-if="{{g.custom}}"><input value="{{g.name}}" onChange="{{g.setName}}" aria-label="Station name" style="flex:1;min-width:90px;width:auto;padding:0 6px"><select onChange="{{g.setWorld}}" aria-label="World" style="width:66px;padding:0 4px"><option value="Earth" selected="{{g.earth}}">Earth</option><option value="Luna" selected="{{g.luna}}">Moon</option></select><input type="number" step="any" min="-90" max="90" value="{{g.lat}}" onChange="{{g.setLat}}" aria-label="Latitude" title="Latitude (°)" placeholder="Lat" style="width:56px;padding:0 6px"><input type="number" step="any" min="-180" max="180" value="{{g.lon}}" onChange="{{g.setLon}}" aria-label="Longitude" title="Longitude (°)" placeholder="Lon" style="width:62px;padding:0 6px"><button class="lnk" onClick="{{g.remove}}" aria-label="Remove {{g.name}}" title="Remove" style="text-decoration:none;font-size:14px;padding:0 2px">✕</button></template>
 </div>
 </template>
@@ -140,7 +142,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 </div>
 
 <section class="pnl" style="flex:1;padding-top:10px">
-<div class="row" style="gap:4px;border-bottom:1.5px solid #222;margin:0 -16px;padding:0 16px">
+<div class="row" style="gap:4px;border-bottom:1.5px solid var(--line-strong);margin:0 -16px;padding:0 16px">
 <button class="tab on">SAT-1</button>
 <div style="flex:1"></div>
 <span class="tag">◆ 1 satellite (NOS3)</span>
@@ -148,7 +150,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 <div style="flex:1;min-height:0;display:flex;gap:16px">
 <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
 <div class="row"><span class="h" style="flex:1">Orbit · {{orbitDesc}}</span><span class="tag">◆ 42 · {{orbitFile}}</span></div>
-<template data-if="{{orbitFixed}}"><span style="font-size:12px;color:#555">This scenario uses a three-body orbit (Earth-Moon NRHO), set by the scenario. It is not described by altitudes and inclination.</span></template>
+<template data-if="{{orbitFixed}}"><span style="font-size:12px;color:var(--txt-2)">This scenario uses a three-body orbit (Earth-Moon NRHO), set by the scenario. It is not described by altitudes and inclination.</span></template>
 <template data-if="{{orbitEditable}}">
 <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:520px">
 <div class="fld"><label for="pe">Periapsis (km)</label><input id="pe" type="number" min="100" step="any" value="{{draftPeri}}" onChange="{{setPeri}}"></div>
@@ -159,21 +161,21 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 <div class="row"><span class="h" style="flex:1">Components &amp; sensors</span><span class="tag">◆ NOS3 component sims + flight software drivers</span></div>
 <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 12px">
 <template data-for="{{comps}}" data-as="c">
-<div class="cmp"><input type="checkbox" id="cmp-{{c.key}}" checked="{{c.on}}" onChange="{{c.toggle}}"><label for="cmp-{{c.key}}" style="font-size:13px;font-weight:400;color:#222;flex:1">{{c.name}}</label></div>
+<div class="cmp"><input type="checkbox" id="cmp-{{c.key}}" checked="{{c.on}}" onChange="{{c.toggle}}"><label for="cmp-{{c.key}}" style="font-size:13px;font-weight:400;color:var(--txt);flex:1">{{c.name}}</label></div>
 </template>
 </div>
 </div>
-<div class="box" style="width:240px;flex:none;padding:12px;display:flex;flex-direction:column;gap:10px;background:#FAFAFA">
+<div class="box" style="width:240px;flex:none;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--soft)">
 <span class="h">Satellite</span>
-<span style="font-size:12px;font-weight:600;color:#444">Initial rotation (tipoff, deg/s)</span>
+<span style="font-size:12px;font-weight:600;color:var(--txt-2)">Initial rotation (tipoff, deg/s)</span>
 <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
 <div class="fld"><label for="tx">X</label><input id="tx" type="number" step="any" value="{{draftTx}}" onChange="{{setTx}}" disabled="{{tipoffDisabled}}"></div>
 <div class="fld"><label for="ty">Y</label><input id="ty" type="number" step="any" value="{{draftTy}}" onChange="{{setTy}}" disabled="{{tipoffDisabled}}"></div>
 <div class="fld"><label for="tz">Z</label><input id="tz" type="number" step="any" value="{{draftTz}}" onChange="{{setTz}}" disabled="{{tipoffDisabled}}"></div>
 </div>
-<template data-if="{{tipoffDisabled}}"><span style="font-size:11px;color:#555">NOS3 applies the tipoff to the STF1 spacecraft only.</span></template>
+<template data-if="{{tipoffDisabled}}"><span style="font-size:11px;color:var(--txt-2)">NOS3 applies the tipoff to the STF1 spacecraft only.</span></template>
 <label class="opt" for="g42"><input type="checkbox" id="g42" checked="{{draftG42}}" onChange="{{setG42}}">42 graphics window</label>
-<span style="font-size:11px;color:#555">3D view of the satellite, opens on the NOS3 desktop.</span>
+<span style="font-size:11px;color:var(--txt-2)">3D view of the satellite, opens on the NOS3 desktop.</span>
 <div style="flex:1"></div>
 <button class="btn sm" onClick="{{resetDraft}}">Reset to defaults</button>
 </div>
@@ -210,7 +212,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 <div class="row"><button class="btn" style="flex:1" disabled title="Saving configurations: coming later">Save</button></div>
 </section>
 <button class="btn primary" onClick="{{launchClick}}" disabled="{{launchDisabled}}" style="height:52px;font-size:15px">{{launch}}</button>
-<span role="status" style="font-size:12px;color:#555;text-align:center;min-height:16px">{{simMsg}}</span>
+<span role="status" style="font-size:12px;color:var(--txt-2);text-align:center;min-height:16px">{{simMsg}}</span>
 <div class="row" style="justify-content:center;gap:16px">
 <template data-if="{{showDesktop}}"><a href="{{desktopUrl}}" target="_blank" rel="noopener" style="font-size:12px">View NOS3 desktop ↗</a></template>
 <template data-if="{{showStop}}"><button class="lnk" onClick="{{stopClick}}" disabled="{{stopDisabled}}">■ Stop simulation</button></template>

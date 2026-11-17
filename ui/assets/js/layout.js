@@ -31,6 +31,22 @@
     ['hardware', 'Hardware (HIL)', 'hardware.html']
   ];
 
+  const ICONS = {
+    wizard: '<path d="M4 6h3M11 6h9M4 12h9M17 12h3M4 18h1M9 18h11"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="7" cy="18" r="2"/>',
+    dashboard: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
+    orbit: '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>',
+    telemetry: '<path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/>',
+    commands: '<path d="M4 17l6-6-6-6M12 19h8"/>',
+    events: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+    training: '<rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M8.5 11.5l1 1 2-2M14 11.5h2M8.5 16.5l1 1 2-2M14 16.5h2"/>',
+    hardware: '<rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>',
+    help: '<circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>'
+  };
+
+  function icon(key) {
+    return `<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[key] || ''}</svg>`;
+  }
+
   // Header states. The keys match the server's /api/status `state` (plus "not-started",
   // an alias of "idle"). A page's data-status is only shown until the server answers.
   const STATUS = {
@@ -174,20 +190,40 @@
     await COS3.api.stop();
   });
 
+  function themeBtn() {
+    const dark = COS3.theme.get() === 'dark';
+    return { dark, text: dark ? 'Dark mode' : 'Light mode', label: dark ? 'Switch to light mode' : 'Switch to dark mode' };
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest && e.target.closest('[data-cos3-btn="theme"]')) COS3.theme.toggle();
+  });
+
+  window.addEventListener('cos3:theme', () => {
+    const t = themeBtn();
+    for (const b of document.querySelectorAll('[data-cos3-btn="theme"]')) {
+      b.lastChild.textContent = t.text;
+      b.setAttribute('aria-checked', t.dark);
+      b.title = t.label;
+    }
+  });
+
   function header(opts) {
     const s = STATUS[opts.status] || STATUS.running;
+    const t = themeBtn();
     const dis = (enabled) => (enabled ? '' : ' disabled');
     return `
-<header style="height:60px;flex:none;display:flex;align-items:center;gap:14px;padding:0 20px;background:#fff;border-bottom:1.5px solid #999;box-sizing:border-box">
-<div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border:2px solid #222;border-radius:50%;box-sizing:border-box"></div><span style="font-weight:700;font-size:20px;letter-spacing:.04em">COS3</span></div>
-<div style="width:1px;height:28px;background:#DDD"></div>
-<div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:11px;color:#555">Mission</span><span style="font-size:14px;font-weight:600">[MISSION NAME]</span></div>
+<header class="hdr" style="height:60px;flex:none;display:flex;align-items:center;gap:14px;padding:0 20px;box-sizing:border-box">
+<div style="display:flex;align-items:center;gap:10px"><div class="hdr-logo"></div><span style="font-weight:700;font-size:20px;letter-spacing:.04em">COS3</span></div>
+<div class="hdr-sep"></div>
+<div style="display:flex;flex-direction:column;line-height:1.25"><span class="hdr-sub">Mission</span><span style="font-size:14px;font-weight:600">[MISSION NAME]</span></div>
 <div style="display:flex;align-items:center;gap:8px"><label for="sat">Satellite</label><select id="sat" style="width:120px;height:36px"><option>SAT-1</option><option>SAT-2</option></select></div>
 <div style="flex:1"></div>
-<div class="box" data-cos3-status style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px"><span data-cos3-dot class="${s.dot}"></span><span data-cos3-label style="font-weight:600;font-size:13px">${s.label}</span><span data-cos3-time class="mono" style="font-size:12px;color:#444">· ${s.time} UTC</span></div>
+<div class="box" data-cos3-status style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px"><span data-cos3-dot class="${s.dot}"></span><span data-cos3-label style="font-weight:600;font-size:13px">${s.label}</span><span data-cos3-time class="mono" style="font-size:12px;color:var(--txt-2)">· ${s.time} UTC</span></div>
 <div style="display:flex;gap:6px"><button class="btn" data-cos3-btn="start"${dis(s.start)}>▶ Start</button><button class="btn" data-cos3-btn="pause"${dis(s.pause)}>❚❚ Pause</button><button class="btn" data-cos3-btn="stop"${dis(s.stop)}>■ Stop</button></div>
 <div style="display:flex;align-items:center;gap:8px"><label for="spd">Speed</label><select id="spd" style="width:76px;height:36px"><option>0.5×</option><option selected>1×</option><option>2×</option><option>5×</option><option>10×</option></select></div>
-<div style="display:flex;flex-direction:column;line-height:1.25;border-left:1px solid #DDD;padding-left:12px"><span style="font-size:11px;color:#555">[USER]</span><span style="font-size:13px;font-weight:600">Operator</span></div>
+<div style="display:flex;flex-direction:column;line-height:1.25;border-left:1px solid var(--line);padding-left:12px"><span class="hdr-sub">[USER]</span><span style="font-size:13px;font-weight:600">Operator</span></div>
+<button class="theme-switch" type="button" role="switch" aria-checked="${t.dark}" data-cos3-btn="theme" title="${t.label}"><span class="theme-track"></span><span>${t.text}</span></button>
 </header>`;
   }
 
@@ -201,18 +237,18 @@
       if (item === 'divider') {
         const g = firstDivider ? 'setup' : 'sim';
         firstDivider = false;
-        return `<div${group(g)}><div style="height:1px;background:#DDD;margin:8px 0"></div></div>`;
+        return `<div${group(g)}><div class="nav-sep"></div></div>`;
       }
       const [key, label, file] = item;
       const on = key === opts.active ? ' class="on" aria-current="page"' : '';
-      return `<a href="${file}"${on}${group(key === 'wizard' ? 'setup' : 'sim')}><span class="ico"></span>${label}</a>`;
+      return `<a href="${file}"${on}${group(key === 'wizard' ? 'setup' : 'sim')}>${icon(key)}${label}</a>`;
     }).join('\n');
     return `
-<nav class="nav" aria-label="Main navigation" style="width:220px;flex:none;background:#fff;border-right:1.5px solid #999;padding:16px 12px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
+<nav class="nav" aria-label="Main navigation" style="width:220px;flex:none;padding:16px 12px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px">
 ${links}
 <div class="slot" data-cos3-group="sim" style="height:40px;margin-top:4px${sim ? '' : ';display:none'}" aria-label="Placeholder for a future page"></div>
 <div style="flex:1"></div>
-<a href="#help"><span class="ico" style="border-radius:50%"></span>Help &amp; documentation</a>
+<a href="#help">${icon('help')}Help &amp; documentation</a>
 </nav>`;
   }
 
