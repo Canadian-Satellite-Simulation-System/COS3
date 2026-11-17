@@ -98,6 +98,13 @@
       font-size: 13px
     }
 
+    .i-slot {
+      display: inline-block;
+      width: 14px;
+      margin-right: 8px;
+      flex: none
+    }
+
     .lst {
       display: flex;
       flex-direction: column;
@@ -276,6 +283,22 @@
       padding-top: 12px;
       border-top: 1px solid var(--line)
     }
+
+    .stat.sent::before, .stat.rejected::before, .stat.failed::before, .msg-err::before, .hazard strong::before {
+      content: "";
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 5px;
+      vertical-align: -2px;
+      background: currentColor;
+      -webkit-mask: var(--i) center/contain no-repeat;
+      mask: var(--i) center/contain no-repeat
+    }
+
+    .stat.sent::before { --i: var(--i-check) }
+    .stat.rejected::before, .stat.failed::before { --i: var(--i-cross) }
+    .msg-err::before, .hazard strong::before { --i: var(--i-warn) }
   </style>
 </head>
 
@@ -316,8 +339,8 @@
           <div style="flex:1;min-height:0;display:flex;gap:16px">
             <section class="pnl" style="width:250px;flex:none" aria-label="Enabled components">
               <div style="font-weight:600">Components</div>
-              <input id="component-search" type="search" placeholder="Search components" aria-label="Search components"
-                value="{{compQuery}}" onInput="{{searchComps}}">
+              <span class="srch"><span class="i i-search"></span><input id="component-search" type="search" placeholder="Search components" aria-label="Search components"
+                value="{{compQuery}}" onInput="{{searchComps}}"></span>
               <template data-if="{{loading}}">
                 <p style="margin:0;color:var(--txt-2);font-size:13px">Loading components…</p>
               </template>
@@ -329,15 +352,18 @@
               </template>
               <div class="lst">
                 <template data-for="{{comps}}" data-as="c">
-                  <button class="pk {{c.cls}}" onClick="{{c.pick}}" title="{{c.key}}">{{c.name}}</button>
+                  <button class="pk {{c.cls}}" onClick="{{c.pick}}" title="{{c.key}}"><span class="{{c.ico}}"></span>{{c.name}}</button>
                 </template>
               </div>
+              <template data-if="{{canToggle}}">
+                <button type="button" class="lnk" style="align-self:flex-start" onClick="{{toggleAll}}">{{toggleLabel}}</button>
+              </template>
             </section>
 
             <section class="pnl" style="width:330px;flex:none" aria-label="Commands">
               <div style="font-weight:600">Commands</div>
-              <input id="command-search" type="search" placeholder="Search commands" aria-label="Search commands"
-                value="{{cmdQuery}}" onInput="{{searchCmds}}" disabled="{{noComponent}}">
+              <span class="srch"><span class="i i-search"></span><input id="command-search" type="search" placeholder="Search commands" aria-label="Search commands"
+                value="{{cmdQuery}}" onInput="{{searchCmds}}" disabled="{{noComponent}}"></span>
               <template data-if="{{noComponent}}">
                 <p class="hint">Select a component.</p>
               </template>
@@ -538,6 +564,7 @@
       failed: (r) => r.error
     };
     const STATUS_LABELS = {sent: 'Sent', rejected: 'Rejected', failed: 'Failed'};
+    const COMPONENT_ICONS = {rw: 'wheel', torquer: 'magnet', css: 'sun', radio: 'link', eps: 'battery'};
 
     // A history record -> the values its table row shows. `componentNames` maps component key -> name.
     function historyRow(r, componentNames, resend) {
@@ -566,7 +593,7 @@
           loading: true, error: null, spacecraft: null, sel: null,
           path: 'DEBUG',
           cmds: null, cmdLoading: false, cmdError: null,
-          compQuery: '', cmdQuery: '',
+          compQuery: '', cmdQuery: '', showAll: false,
           ...EMPTY_FORM,
           busy: false, 
           confirm: null, 
@@ -737,9 +764,13 @@
         const sc = s.spacecraft;
         const list = sc ? sc.components : [];
         const componentNames = Object.fromEntries(list.map((c) => [c.key, c.name]));
-        const comps = list.filter((c) => matches(s.compQuery, c.name, c.key)).map((c) => ({
+        const mainList = list.filter((c) => COMPONENT_ICONS[c.key] || c.key === s.sel);
+        const canToggle = mainList.length > 0 && mainList.length < list.length;
+        const shown = s.showAll || !canToggle ? list : mainList;
+        const comps = shown.filter((c) => matches(s.compQuery, c.name, c.key)).map((c) => ({
           key: c.key,
           name: c.name,
+          ico: COMPONENT_ICONS[c.key] ? 'i i-' + COMPONENT_ICONS[c.key] : 'i-slot',
           cls: c.key === s.sel ? 'on' : '',
           pick: () => {
             if (c.key === s.sel) return;
@@ -785,6 +816,9 @@
           compQuery: s.compQuery,
           searchComps: this.searchComps,
           noCompMatches: list.length > 0 && comps.length === 0,
+          canToggle,
+          toggleAll: () => this.setState({showAll: !s.showAll}),
+          toggleLabel: s.showAll ? 'Show main components only' : `Show all (${list.length})`,
 
           cmds,
           cmdCount: cmds.length,

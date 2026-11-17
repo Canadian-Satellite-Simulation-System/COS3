@@ -16,6 +16,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 .dc{padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--tile);border-color:transparent}
 .dc .kv{padding:4px 0}
 .dc .kv:last-child{border-bottom:0}
+.dc .i{color:var(--accent)}
 .src{font-size:11px;color:var(--txt-2)}
 .gs{display:flex;align-items:center;gap:6px;min-height:30px}
 .gs input,.gs select{height:28px}
@@ -60,17 +61,17 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
 
 <div class="box dc">
-<div class="row"><span class="h" style="font-size:11px;flex:1">Mission</span><span class="mono src">{{cfgFile}}</span></div>
+<div class="row"><span class="i i-flag"></span><span class="h" style="font-size:11px;flex:1">Mission</span><span class="mono src">{{cfgFile}}</span></div>
 <div><template data-for="{{missionRows}}" data-as="k"><div class="kv"><span>{{k.l}}</span><span>{{k.v}}</span></div></template></div>
 </div>
 
 <div class="box dc">
-<div class="row"><span class="h" style="font-size:11px;flex:1">Satellites · orbit</span><span class="mono src">{{satFile}}</span></div>
+<div class="row"><span class="i i-sat"></span><span class="h" style="font-size:11px;flex:1">Satellites · orbit</span><span class="mono src">{{satFile}}</span></div>
 <div><template data-for="{{satRows}}" data-as="k"><div class="kv"><span>{{k.l}}</span><span>{{k.v}}</span></div></template></div>
 </div>
 
 <div class="box dc">
-<div class="row"><span class="h" style="font-size:11px;flex:1">Components · {{compCount}}</span><span class="mono src">{{satFile}}</span></div>
+<div class="row"><span class="i i-layers"></span><span class="h" style="font-size:11px;flex:1">Components · {{compCount}}</span><span class="mono src">{{satFile}}</span></div>
 <div style="display:flex;flex-wrap:wrap;gap:6px">
 <template data-for="{{compsOn}}" data-as="c"><span class="cchip">{{c}}</span></template>
 </div>
@@ -78,7 +79,7 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 </div>
 
 <div class="box dc">
-<div class="row"><span class="h" style="font-size:11px;flex:1">Ground link</span><span class="mono src">launch.sh</span></div>
+<div class="row"><span class="i i-link"></span><span class="h" style="font-size:11px;flex:1">Ground link</span><span class="mono src">launch.sh</span></div>
 <div>
 <div class="kv"><span>Ground software</span><span>{{gswLabel}}</span></div>
 <div class="kv"><span>Connection</span><span>Radio sim, always connected</span></div>
@@ -88,12 +89,12 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:34px;border:1.5px s
 </div>
 
 <div class="box dc">
-<span class="h" style="font-size:11px">Fault scenario</span>
+<div class="row"><span class="i i-bolt"></span><span class="h" style="font-size:11px">Fault scenario</span></div>
 <span style="font-size:13px">None</span>
 </div>
 
 <div class="box dc">
-<span class="h" style="font-size:11px">Hardware-in-the-Loop</span>
+<div class="row"><span class="i i-chip"></span><span class="h" style="font-size:11px">Hardware-in-the-Loop</span></div>
 <span style="font-size:13px">Off</span>
 </div>
 

@@ -21,7 +21,7 @@
         .num{text-align:right}
         .bar{height:8px;background:var(--soft);border-radius:4px;overflow:hidden;min-width:80px}
         .bar>div{height:100%;background:var(--accent)}
-        .err{width:100%;box-sizing:border-box;flex:none;padding:8px 12px;color:var(--danger);font-size:12px;border-bottom:1px solid var(--line)}
+        .err{display:block;width:100%;height:auto;box-sizing:border-box;flex:none;padding:8px 12px;color:var(--danger);font-size:12px;line-height:1.4;border:0;border-bottom:1px solid var(--line)}
         .css-row:hover td{background:var(--soft)}
         .css-row.sel td{background:var(--soft);font-weight:600}
         .pick-btn{background:none;border:0;padding:0;margin:0;font:inherit;color:var(--txt);cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
@@ -69,7 +69,7 @@
                         <div class="row"></div>
                         <div style="display:flex;flex-direction:column;gap:2px">
                             <template data-for="{{pages}}" data-as="p">
-                                <button class="pk {{p.cls}}" onClick="{{p.pick}}">{{p.name}}</button>
+                                <button class="pk {{p.cls}}" onClick="{{p.pick}}"><span class="i i-{{p.ico}}"></span>{{p.name}}</button>
                             </template>
                         </div>
                         <div style="flex:1"></div>
@@ -78,7 +78,7 @@
                     <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
                         <div class="row">
                             <span style="font-weight:700;font-size:16px;flex:1">{{sel}}</span>
-                            <input type="search" placeholder="Filter items…" aria-label="Filter items" style="width:200px">
+                            <span class="srch" style="width:200px"><span class="i i-search"></span><input type="search" placeholder="Filter items…" aria-label="Filter items"></span>
                         </div>
 
                         <!-- Table + side panel row: fits the table on the CSS tab, fills the space on other tabs -->
@@ -113,7 +113,7 @@
                                     <thead><tr><th>Item</th><th>Value</th><th>Units</th><th>Limit</th><th>Time (UTC)</th></tr></thead>
                                     <tbody>
                                     <template data-for="{{items}}" data-as="it">
-                                        <tr><td class="mono">{{it.n}}</td><td class="mono" style="font-weight:600">[value]</td><td>{{it.u}}</td><td><span class="lim" style="{{it.ls}}">{{it.l}}</span></td><td class="mono" style="color:var(--txt-2)">[hh:mm:ss]</td></tr>
+                                        <tr><td class="mono">{{it.n}}</td><td class="mono" style="font-weight:600">[value]</td><td>{{it.u}}</td><td><span class="lim" style="{{it.ls}}"><span class="{{it.ic}}"></span>{{it.l}}</span></td><td class="mono" style="color:var(--txt-2)">[hh:mm:ss]</td></tr>
                                     </template>
                                     </tbody>
                                 </table>
@@ -124,7 +124,7 @@
                                 <div class="row"><span class="h" style="flex:1">Alarms</span><span class="tag">◆ Limits</span></div>
                                 <template data-for="{{alarms}}" data-as="a">
                                     <div style="border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:4px">
-                                        <div class="row"><span class="lim" style="{{a.ls}}">{{a.l}}</span><span class="mono" style="font-size:12px;font-weight:600">{{a.item}}</span></div>
+                                        <div class="row"><span class="lim" style="{{a.ls}}"><span class="{{a.ic}}"></span>{{a.l}}</span><span class="mono" style="font-size:12px;font-weight:600">{{a.item}}</span></div>
                                         <span class="mono" style="font-size:11px;color:var(--txt-2)">[hh:mm:ss]</span>
                                     </div>
                                 </template>
@@ -279,7 +279,8 @@
 
       renderVals() {
         const names = ['Overview', 'Reaction wheel', 'Magnetorquer', 'Coarse sun sensors', 'Photodiode'];
-        const pages = names.map((n) => ({ name: n, cls: n === this.state.sel ? 'on' : '', pick: () => this.setState({ sel: n }) }));
+        const PAGE_ICO = { 'Overview': 'grid', 'Reaction wheel': 'wheel', 'Magnetorquer': 'magnet', 'Coarse sun sensors': 'sun', 'Photodiode': 'sensor' };
+        const pages = names.map((n) => ({ name: n, ico: PAGE_ICO[n], cls: n === this.state.sel ? 'on' : '', pick: () => this.setState({ sel: n }) }));
         const yel = 'border-style:dashed;';
         const red = 'background:var(--accent);color:var(--on-accent);';
         const items = [
@@ -294,6 +295,8 @@
         const isCss = this.state.sel === 'Coarse sun sensors';
         const hide = 'display:none;';
         const alarms = isCss ? [] : [{ l: 'RED', ls: red, item: 'WHEEL_2_SPEED' }, { l: 'YELLOW', ls: yel, item: 'MOMENTUM' }];
+        const LIM_ICO = { RED: 'i i-error', YELLOW: 'i i-warn' };
+        for (const x of items.concat(alarms)) x.ic = LIM_ICO[x.l] || '';
         const g = this.state.src === 'g';
         return {
           pages, items, alarms, sel: this.state.sel,

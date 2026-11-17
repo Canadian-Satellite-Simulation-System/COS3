@@ -40,7 +40,7 @@
       this.root.innerHTML = `
         <div class="chart-head">
           <span class="h"></span>
-          <button class="btn sm" type="button">Expand</button>
+          <button class="btn sm" type="button"><span class="i i-expand"></span><span>Expand</span></button>
         </div>
         <div class="plot"><canvas></canvas></div>`;
 
@@ -55,6 +55,11 @@
       this.updateTitle();
     }
 
+    setBtn(icon, label) {
+      this.btn.firstElementChild.className = 'i i-' + icon;
+      this.btn.lastElementChild.textContent = label;
+    }
+
     updateTitle() { this.titleEl.textContent = `${this.title}: ${selected}`; }
 
     // Expanded view: the chart moves into an overlay outside the page, so page re-renders don't affect it
@@ -63,14 +68,14 @@
       this.expanded = true;
       overlay.appendChild(this.root);
       overlay.classList.add('on');
-      this.btn.textContent = 'Close';
+      this.setBtn('cross', 'Close');
       this.draw();
     }
 
     collapse() {
       this.expanded = false;
       overlay.classList.remove('on');
-      this.btn.textContent = 'Expand';
+      this.setBtn('expand', 'Expand');
       attach();
     }
 
@@ -86,7 +91,6 @@
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, w, h);
       g.font = '11px "IBM Plex Mono", monospace';
-      // Canvas can't use CSS variables: read the theme colors (style.css) for each draw
       const css = getComputedStyle(document.documentElement);
       const col = (name) => css.getPropertyValue(name).trim();
       g.fillStyle = col('--txt-2');
@@ -165,7 +169,6 @@
         new LiveChart({ slotId: 'css-chart-value', title: 'Converted value', field: 'value', units: 'V', digits: 3 })
       ];
       attach();
-      // Light / dark toggle: redraw in the new colors
       window.addEventListener('cos3:theme', () => charts.forEach((c) => c.draw()));
       new MutationObserver(attach).observe(document.getElementById('app'), { childList: true, subtree: true });
     },

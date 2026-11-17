@@ -13,6 +13,7 @@ th{text-align:left;font-weight:600;color:var(--txt-2);border-bottom:1.5px solid 
 td{border-bottom:1px solid var(--line);padding:6px 10px}
 .pnl{background:var(--panel);border:1.5px solid var(--line);border-radius:4px;box-sizing:border-box;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-height:0}
 .st{display:flex;gap:6px;align-items:center}
+.st .i{color:var(--danger)}
 </style>
 </head>
 <body>
@@ -34,10 +35,10 @@ td{border-bottom:1px solid var(--line);padding:6px 10px}
 <section class="pnl">
 <div class="row"><span class="h" style="flex:1">Services</span><span class="tag">◆ NOS3 processes</span></div>
 <table><tbody>
-<tr><td style="font-weight:600">NOS Engine</td><td><span class="st"><span class="dot off"></span>[STATUS]</span></td></tr>
-<tr><td style="font-weight:600">Flight software</td><td><span class="st"><span class="dot off"></span>[STATUS]</span></td></tr>
-<tr><td style="font-weight:600">42</td><td><span class="st"><span class="dot off"></span>[STATUS]</span></td></tr>
-<tr><td style="font-weight:600">Ground software</td><td><span class="st"><span class="dot off"></span>[STATUS]</span></td></tr>
+<tr><td style="font-weight:600">NOS Engine</td><td><span class="st"><span class="i i-cross"></span>[STATUS]</span></td></tr>
+<tr><td style="font-weight:600">Flight software</td><td><span class="st"><span class="i i-cross"></span>[STATUS]</span></td></tr>
+<tr><td style="font-weight:600">42</td><td><span class="st"><span class="i i-cross"></span>[STATUS]</span></td></tr>
+<tr><td style="font-weight:600">Ground software</td><td><span class="st"><span class="i i-cross"></span>[STATUS]</span></td></tr>
 </tbody></table>
 </section>
 <section class="pnl" style="flex:1">
@@ -46,7 +47,7 @@ td{border-bottom:1px solid var(--line);padding:6px 10px}
 <thead><tr><th>Component</th><th>Mode</th><th>Status</th></tr></thead>
 <tbody>
 <template data-for="{{comps}}" data-as="c">
-<tr><td>{{c.n}}</td><td class="mono" style="font-size:12px">[MODE]</td><td><span class="st"><span class="dot off"></span>[STATUS]</span></td></tr>
+<tr><td>{{c.n}}</td><td class="mono" style="font-size:12px">[MODE]</td><td><span class="st"><span class="i i-cross"></span>[STATUS]</span></td></tr>
 </template>
 </tbody>
 </table>

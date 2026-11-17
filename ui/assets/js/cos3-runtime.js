@@ -149,8 +149,6 @@
     for (const fn of window.COS3.onRender || []) fn(app);
   }
 
-  // The page always fills the whole browser window (no blank area around it).
-  // Windows narrower than the 1440px design are scaled down; wider or taller ones get more room.
   const PAGE_W = 1440;
   function fitToWindow() {
     if (!app) return;

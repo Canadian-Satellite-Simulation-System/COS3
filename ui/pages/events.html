@@ -28,10 +28,10 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 <div class="row" style="gap:12px"><h1 style="margin:0;font-size:22px">Events &amp; Logs</h1><div style="flex:1"></div><span class="tag">◆ Flight software events</span><span class="tag">◆ COSMOS</span><span class="tag">◆ NOS Engine</span></div>
 
 <div class="box" style="padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-<input type="search" placeholder="Search…" aria-label="Search events" style="width:300px">
+<span class="srch" style="width:300px"><span class="i i-search"></span><input type="search" placeholder="Search…" aria-label="Search events"></span>
 <div class="row" role="group" aria-label="Severity">
 <template data-for="{{sevs}}" data-as="s">
-<button class="btn sm {{s.cls}}" onClick="{{s.toggle}}" aria-pressed="{{s.on}}">{{s.name}}</button>
+<button class="btn sm {{s.cls}}" onClick="{{s.toggle}}" aria-pressed="{{s.on}}"><span class="{{s.ico}}"></span>{{s.name}}</button>
 </template>
 </div>
 <select aria-label="Source" style="width:160px"><option>All sources</option><option>Flight software</option><option>COSMOS</option><option>NOS Engine</option><option>42</option></select>
@@ -44,10 +44,10 @@ input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px s
 
 <section class="box" style="flex:1;min-height:0;overflow:hidden">
 <table>
-<thead><tr><th style="width:130px">Time (UTC)</th><th style="width:100px">Severity</th><th style="width:150px">Source</th><th>Message</th></tr></thead>
+<thead><tr><th style="width:130px">Time (UTC)</th><th style="width:110px">Severity</th><th style="width:150px">Source</th><th>Message</th></tr></thead>
 <tbody>
 <template data-for="{{rows}}" data-as="r">
-<tr><td class="mono">[hh:mm:ss]</td><td><span class="sev" style="{{r.ss}}">{{r.sev}}</span></td><td>{{r.src}}</td><td>{{r.msg}}</td></tr>
+<tr><td class="mono">[hh:mm:ss]</td><td><span class="sev" style="{{r.ss}}"><span class="{{r.ico}}"></span>{{r.sev}}</span></td><td>{{r.src}}</td><td>{{r.msg}}</td></tr>
 </template>
 </tbody>
 </table>
@@ -65,8 +65,9 @@ class Component extends DCLogic {
   constructor(props) { super(props); this.state = { off: {} }; }
   renderVals() {
     const off = this.state.off;
+    const ICO = { INFO: 'i i-info', WARN: 'i i-warn', WARNING: 'i i-warn', ERROR: 'i i-error', CRIT: 'i i-error', CRITICAL: 'i i-error' };
     const sevs = ['INFO', 'WARNING', 'ERROR', 'CRITICAL'].map((n) => ({
-      name: n, on: off[n] ? 'false' : 'true', cls: off[n] ? '' : 'on',
+      name: n, ico: ICO[n], on: off[n] ? 'false' : 'true', cls: off[n] ? '' : 'on',
       toggle: () => this.setState({ off: Object.assign({}, off, { [n]: !off[n] }) })
     }));
     const S = { INFO: 'border-style:dashed;', WARN: '', ERROR: 'background:var(--accent);color:var(--on-accent);', CRIT: 'background:var(--accent);color:var(--on-accent);outline:2px solid var(--accent);outline-offset:1px;' };
@@ -75,7 +76,7 @@ class Component extends DCLogic {
       ['WARN', 'NOS Engine', 'Sun sensor reading outside expected range'],
       ['ERROR', 'COS3', 'Ground software lost connection to flight software']
     ].filter(([s]) => !off[s === 'WARN' ? 'WARNING' : s === 'CRIT' ? 'CRITICAL' : s])
-     .map(([sev, src, msg]) => ({ sev, ss: S[sev], src, msg }));
+     .map(([sev, src, msg]) => ({ sev, ss: S[sev], ico: ICO[sev], src, msg }));
     return { sevs, rows };
   }
 }
