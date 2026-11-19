@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=1440">
+    <title>COS3 – Telemetry</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <script src="assets/js/theme.js"></script>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        /* Styles used only on this page */
+        th{text-align:left;font-weight:600;color:var(--txt-2);border-bottom:1.5px solid var(--line);padding:8px 12px;background:var(--soft)}
+        td{border-bottom:1px solid var(--line);padding:8px 12px}
+        input,select{font:400 13px 'IBM Plex Sans',sans-serif;height:36px;border:1.5px solid var(--line);border-radius:4px;padding:0 10px;box-sizing:border-box;background:var(--panel);color:var(--txt);width:100%}
+        .pnl{background:var(--panel);border:1.5px solid var(--line);border-radius:4px;box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+        .pk{display:flex;align-items:center;height:36px;padding:0 10px;border-radius:4px;font-size:13px;background:none;border:0;width:100%;text-align:left;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;color:var(--txt)}
+        .pk.on{background:var(--accent);color:var(--on-accent);font-weight:600}
+        /* Coarse sun sensor view */
+        .meta{display:flex;gap:4px 24px;flex-wrap:wrap;font-size:12px;color:var(--txt-2);padding:10px 12px;border-bottom:1px solid var(--line)}
+        .meta b{color:var(--txt);font-weight:600}
+        .num{text-align:right}
+        .bar{height:8px;background:var(--soft);border-radius:4px;overflow:hidden;min-width:80px}
+        .bar>div{height:100%;background:var(--accent)}
+        .err{display:block;width:100%;height:auto;box-sizing:border-box;flex:none;padding:8px 12px;color:var(--danger);font-size:12px;line-height:1.4;border:0;border-bottom:1px solid var(--line)}
+        .css-row:hover td{background:var(--soft)}
+        .css-row.sel td{background:var(--soft);font-weight:600}
+        .pick-btn{background:none;border:0;padding:0;margin:0;font:inherit;color:var(--txt);cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+        .css-row.sel .pick-btn{font-weight:600;text-decoration:none}
+        /* Shared layout: tables fill the panel down to a fixed-height footer, so both tables end on the same line */
+        .fill{flex:1;min-height:0;display:flex;flex-direction:column}
+        .fill>table{width:100%;height:100%;border-collapse:collapse}
+        .foot{flex:none;height:84px;box-sizing:border-box;font-size:11px;line-height:16px;color:var(--txt-2);overflow:hidden}
+        /* Housekeeping panel */
+        .hk-pnl{width:280px;flex:none;padding-bottom:0}
+        .hk-pnl .fill{margin:0 -16px}                   /* Table runs edge to edge, over the panel's side padding */
+        .hk-pnl .foot{margin-top:-12px;padding:8px 0 10px}
+        .hk-head{display:flex;flex-direction:column;gap:2px;margin-top:-6px}
+        .hk-count{font-size:12px;color:var(--txt-2);white-space:nowrap}
+        .hk-count b{color:var(--txt);font-weight:600}
+        .hk-table th,.hk-table td{padding:5px 6px;font-size:12px;white-space:nowrap}
+        .hk-table th:first-child,.hk-table td:first-child{padding-left:16px}    /* Text lines up with the title */
+        .hk-table th:last-child,.hk-table td:last-child{padding-right:16px;text-align:right}
+    </style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Page markup. {{name}} values come from renderVals() in the script below.
+     Header and sidebar are shared: see assets/js/layout.js. -->
+<template id="page">
+    <div class="wf" style="width:100%;height:100%;display:flex;flex-direction:column;background:var(--bg);overflow:hidden">
+        <div data-cos3="header" data-status="running"></div>
+        <div style="flex:1;display:flex;min-height:0">
+            <div data-cos3="nav" data-active="telemetry"></div>
+            <main style="flex:1;min-width:0;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+                <div class="row" style="gap:12px">
+                    <h1 style="margin:0;font-size:22px">Telemetry</h1>
+                    <div style="flex:1"></div>
+                    <span style="font-size:12px;color:var(--txt-2)">View from</span>
+                    <div role="group" aria-label="Telemetry source" style="display:flex">
+                        <button class="btn sm {{gCls}}" onClick="{{toG}}" style="border-radius:4px 0 0 4px">Ground software</button>
+                        <button class="btn sm {{fCls}}" onClick="{{toF}}" style="border-radius:0 4px 4px 0;border-left:0">Flight software (direct)</button>
+                    </div>
+                    <span class="tag">{{srcTag}}</span>
+                </div>
+
+                <div style="flex:1;min-height:0;display:flex;gap:16px">
+                    <section class="pnl" style="width:230px;flex:none">
+                        <div class="row"></div>
+                        <div style="display:flex;flex-direction:column;gap:2px">
+                            <template data-for="{{pages}}" data-as="p">
+                                <button class="pk {{p.cls}}" onClick="{{p.pick}}"><span class="i i-{{p.ico}}"></span>{{p.name}}</button>
+                            </template>
+                        </div>
+                        <div style="flex:1"></div>
+                    </section>
+
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
+                        <div class="row">
+                            <span style="font-weight:700;font-size:16px;flex:1">{{sel}}</span>
+                            <span class="srch" style="width:200px"><span class="i i-search"></span><input type="search" placeholder="Filter items…" aria-label="Filter items"></span>
+                        </div>
+
+                        <!-- Table + side panel row: fits the table on the CSS tab, fills the space on other tabs -->
+                        <div style="display:flex;gap:16px;{{tableRowStyle}}">
+
+                            <!-- Coarse sun sensor table (shown when "Coarse sun sensors" is selected) -->
+                            <section class="box" style="flex:1;min-width:0;overflow:auto;display:flex;flex-direction:column;{{cssShow}}">
+                                <div class="err" style="{{errShow}}">{{cssError}}</div>
+                                <div class="meta">
+                                    <span>Target <b class="mono">{{css.target}}</b></span>
+                                    <span>Packet <b class="mono">{{css.packet}}</b></span>
+                                    <span>Received <b>{{css.count}}</b></span>
+                                    <span>Spacecraft time <b class="mono">{{css.scTime}}</b></span>
+                                    <span>Last update <b class="mono">{{css.time}} UTC</b></span>
+                                </div>
+                                <div class="fill">
+                                    <table>
+                                        <thead><tr><th>Item</th><th class="num">Raw (counts)</th><th class="num">Value</th><th>Units</th><th>Level</th><th>Limit</th><th>Time (UTC)</th></tr></thead>
+                                        <tbody>
+                                        <template data-for="{{cssRows}}" data-as="r">
+                                            <tr class="css-row {{r.cls}}"><td><button type="button" class="pick-btn mono" onClick="{{r.pick}}">{{r.name}}</button></td><td class="mono num">{{r.raw}}</td><td class="mono num" style="font-weight:600">{{r.volts}}</td><td>{{r.units}}</td><td><div class="bar"><div style="width:{{r.pct}}%"></div></div></td><td><span class="lim">{{r.limit}}</span></td><td class="mono" style="color:var(--txt-2)">{{r.time}}</td></tr>
+                                        </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="foot" style="padding:10px 12px">Click an item name to plot it below. Value = raw counts × 0.001 V (0–5 V range). No limits are defined for these items in COSMOS yet.</div>
+                            </section>
+
+                            <!-- Generic table for the other subsystems (placeholder data) -->
+                            <section class="box" style="flex:1;overflow:hidden;{{genShow}}">
+                                <table>
+                                    <thead><tr><th>Item</th><th>Value</th><th>Units</th><th>Limit</th><th>Time (UTC)</th></tr></thead>
+                                    <tbody>
+                                    <template data-for="{{items}}" data-as="it">
+                                        <tr><td class="mono">{{it.n}}</td><td class="mono" style="font-weight:600">[value]</td><td>{{it.u}}</td><td><span class="lim" style="{{it.ls}}"><span class="{{it.ic}}"></span>{{it.l}}</span></td><td class="mono" style="color:var(--txt-2)">[hh:mm:ss]</td></tr>
+                                    </template>
+                                    </tbody>
+                                </table>
+                            </section>
+
+                            <!-- Alarms (other tabs) -->
+                            <section class="pnl" style="width:260px;flex:none;{{genShow}}">
+                                <div class="row"><span class="h" style="flex:1">Alarms</span><span class="tag">◆ Limits</span></div>
+                                <template data-for="{{alarms}}" data-as="a">
+                                    <div style="border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:4px">
+                                        <div class="row"><span class="lim" style="{{a.ls}}"><span class="{{a.ic}}"></span>{{a.l}}</span><span class="mono" style="font-size:12px;font-weight:600">{{a.item}}</span></div>
+                                        <span class="mono" style="font-size:11px;color:var(--txt-2)">[hh:mm:ss]</span>
+                                    </div>
+                                </template>
+                                <span style="font-size:12px;color:var(--txt-2);{{noAlarmShow}}">No active alarms.</span>
+                                <div style="flex:1"></div>
+                            </section>
+
+                            <!-- CSS housekeeping (replaces Alarms on the CSS tab) -->
+                            <section class="pnl hk-pnl" style="{{cssShow}}">
+                                <div class="hk-head">
+                                    <div class="row" style="gap:8px">
+                                        <span class="h" style="flex:1">Housekeeping</span>
+                                        <span class="lim" style="{{hk.badgeStyle}}">{{hk.enabled}}</span>
+                                    </div>
+                                    <span class="hk-count">Received <b>{{hk.count}}</b></span>
+                                </div>
+                                <div class="err" style="{{hkErrShow}}">{{hkError}}</div>
+                                <div class="fill">
+                                    <table class="hk-table">
+                                        <thead><tr><th>Name</th><th>Value</th></tr></thead>
+                                        <tbody>
+                                        <template data-for="{{hk.rows}}" data-as="h">
+                                            <tr><td>{{h.label}}</td><td class="mono" style="{{h.style}}">{{h.value}}</td></tr>
+                                        </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="foot">CCSDS_SEQUENCE, CCSDS_LENGTH, CCSDS_SECONDS, CCSDS_SUBSECS and CCSDS_SPARE can be seen directly in COSMOS.</div>
+                            </section>
+                        </div>
+
+                        <!-- Placeholder charts for the other subsystems -->
+                        <div style="height:210px;flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;{{genShow}}">
+                            <section class="pnl"><span class="h">Wheel speeds</span><div class="ph" style="flex:1"><span>Line chart</span></div></section>
+                            <section class="pnl"><span class="h">Wheel momentum</span><div class="ph" style="flex:1"><span>Line chart</span></div></section>
+                        </div>
+
+                        <!-- CSS charts: filled by assets/js/css-charts.js -->
+                        <div style="flex:1;min-height:260px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;{{cssShow}}">
+                            <div id="css-chart-raw" style="display:flex;min-width:0;min-height:0"></div>
+                            <div id="css-chart-value" style="display:flex;min-width:0;min-height:0"></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</template>
+
+<script src="assets/js/cos3-runtime.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/layout.js"></script>
+<script src="assets/js/css-charts.js"></script>
+<script>
+    const POLL_MS = 1000;      // How often the CSS table refreshes
+    const HK_POLL_MS = 2000;   // Housekeeping changes slowly; every 2 s is enough
+
+    // Shown until the first reply arrives from the backend
+    const EMPTY_CSS = {
+      target: 'GENERIC_CSS_DEBUG', packet: 'GENERIC_CSS_DATA_TLM',
+      count: '—', scTime: '—', time: '—', rows: []
+    };
+    const EMPTY_HK = { enabled: '—', badgeStyle: '', count: '—', rows: [] };
+
+    // Rows of the housekeeping table, in order.
+    // time: show only hh:mm:ss.mmm (UTC) · hex: add the hex value · error: red when above 0
+    const HK_ROWS = [
+      { label: 'Packet time', name: 'PACKET_TIMEFORMATTED', time: true },
+      { label: 'Received time', name: 'RECEIVED_TIMEFORMATTED', time: true },
+      { label: 'Stream ID', name: 'CCSDS_STREAMID', hex: true },
+      { label: 'Command Count', name: 'CMD_COUNT' },
+      { label: 'Command Error Count', name: 'CMD_ERR_COUNT', error: true },
+      { label: 'Device Count', name: 'DEVICE_COUNT' },
+      { label: 'Device Error Count', name: 'DEVICE_ERR_COUNT', error: true }
+    ];
+
+    // Turn the backend's /api/telemetry/css reply into what the table displays.
+    // The backend already converts raw counts to volts and computes the level.
+    function fromBackend(d) {
+      const fmt = (x, digits) => (x == null ? '—' : Number(x).toFixed(digits));
+      return {
+        target: d.target,
+        packet: d.packet,
+        count: d.receivedCount ?? '—',
+        scTime: d.spacecraftTime == null ? '—' : `${fmt(d.spacecraftTime, 2)} s`,
+        time: d.lastUpdate ? d.lastUpdate.split(' ')[1] : '—',
+        rows: d.rows.map((r) => ({
+          name: r.name,
+          raw: r.raw ?? '—',
+          volts: fmt(r.value, 3),
+          units: r.units || '—',
+          pct: r.level ?? 0,
+          limit: r.limit ?? '—',
+          time: r.time ?? '—'
+        }))
+      };
+    }
+
+    // Turn the backend's /api/telemetry/css?packet=hk reply into the housekeeping panel
+    function hkFromBackend(d) {
+      const v = Object.fromEntries(d.allItems || []);
+      const enabled = v.DEVICE_ENABLED ?? '—';
+      const show = (row) => {
+        const x = v[row.name];
+        if (x == null) return '—';
+        if (row.time) return String(x).split(' ')[1] ?? x;
+        if (row.hex) return `${x} (0x${Number(x).toString(16).toUpperCase().padStart(4, '0')})`;
+        return x;
+      };
+      return {
+        enabled,
+        badgeStyle: enabled === 'ENABLED' ? '' : 'background:var(--danger);color:var(--on-danger);border-color:var(--danger);',
+        count: v.RECEIVED_COUNT ?? '—',
+        rows: HK_ROWS.map((row) => ({
+          label: row.label,
+          value: show(row),
+          style: row.error && v[row.name] > 0 ? 'color:var(--danger);font-weight:600;' : ''
+        }))
+      };
+    }
+
+    class Component extends DCLogic {
+      constructor(props) {
+        super(props);
+        this.state = {
+          sel: 'Coarse sun sensors', src: 'g',
+          css: EMPTY_CSS, cssError: '', cssSel: 'RAW_CSS_0',
+          hk: EMPTY_HK, hkError: ''
+        };
+        this.pollCss();
+        setInterval(() => this.pollCss(), POLL_MS);
+        this.pollHk();
+        setInterval(() => this.pollHk(), HK_POLL_MS);
+      }
+
+      // Ask the backend for the latest CSS data packet (only while that tab is open).
+      async pollCss() {
+        if (this.state.sel !== 'Coarse sun sensors') return;
+        const data = await COS3.api.telemetry('css', 'data');
+        if (data.error) return this.setState({ cssError: `Could not load sun sensor data: ${data.error}` });
+        this.setState({ css: fromBackend(data), cssError: '' });
+        CssCharts.addSample(data);
+      }
+
+      // Ask the backend for the latest CSS housekeeping packet (only while that tab is open).
+      async pollHk() {
+        if (this.state.sel !== 'Coarse sun sensors') return;
+        const data = await COS3.api.telemetry('css', 'hk');
+        if (data.error) return this.setState({ hkError: `Could not load housekeeping: ${data.error}` });
+        this.setState({ hk: hkFromBackend(data), hkError: '' });
+      }
+
+      renderVals() {
+        const names = ['Overview', 'Reaction wheel', 'Magnetorquer', 'Coarse sun sensors', 'Photodiode'];
+        const PAGE_ICO = { 'Overview': 'grid', 'Reaction wheel': 'wheel', 'Magnetorquer': 'magnet', 'Coarse sun sensors': 'sun', 'Photodiode': 'sensor' };
+        const pages = names.map((n) => ({ name: n, ico: PAGE_ICO[n], cls: n === this.state.sel ? 'on' : '', pick: () => this.setState({ sel: n }) }));
+        const yel = 'border-style:dashed;';
+        const red = 'background:var(--accent);color:var(--on-accent);';
+        const items = [
+          { n: 'WHEEL_1_SPEED', u: 'rpm', l: 'OK', ls: '' },
+          { n: 'WHEEL_2_SPEED', u: 'rpm', l: 'RED', ls: red },
+          { n: 'WHEEL_3_SPEED', u: 'rpm', l: 'OK', ls: '' },
+          { n: 'WHEEL_1_TORQUE', u: 'mNm', l: 'OK', ls: '' },
+          { n: 'MOMENTUM', u: 'Nms', l: 'YELLOW', ls: yel },
+          { n: 'MODE', u: '—', l: 'OK', ls: '' },
+          { n: 'CMD_COUNT', u: '—', l: 'OK', ls: '' }
+        ];
+        const isCss = this.state.sel === 'Coarse sun sensors';
+        const hide = 'display:none;';
+        const alarms = isCss ? [] : [{ l: 'RED', ls: red, item: 'WHEEL_2_SPEED' }, { l: 'YELLOW', ls: yel, item: 'MOMENTUM' }];
+        const LIM_ICO = { RED: 'i i-error', YELLOW: 'i i-warn' };
+        for (const x of items.concat(alarms)) x.ic = LIM_ICO[x.l] || '';
+        const g = this.state.src === 'g';
+        return {
+          pages, items, alarms, sel: this.state.sel,
+          css: this.state.css,
+          cssRows: this.state.css.rows.map((r) => ({
+            ...r,
+            cls: r.name === this.state.cssSel ? 'sel' : '',
+            pick: () => { this.setState({ cssSel: r.name }); CssCharts.select(r.name); }
+          })),
+          cssError: this.state.cssError, errShow: this.state.cssError ? '' : hide,
+          hk: this.state.hk,
+          hkError: this.state.hkError, hkErrShow: this.state.hkError ? '' : hide,
+          cssShow: isCss ? '' : hide, genShow: isCss ? hide : '',
+          tableRowStyle: isCss ? 'flex:none;' : 'flex:1;min-height:0;',
+          noAlarmShow: alarms.length ? hide : '',
+          gCls: g ? 'on' : '', fCls: g ? '' : 'on',
+          srcTag: g ? '◆ Ground software (COSMOS)' : '◆ Flight software direct',
+          toG: () => this.setState({ src: 'g' }), toF: () => this.setState({ src: 'f' })
+        };
+      }
+    }
+
+    COS3.mount(Component, {});
+    CssCharts.init();
+</script>
+</body>
+</html>

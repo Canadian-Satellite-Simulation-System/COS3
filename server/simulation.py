@@ -1,48 +1,45 @@
 """
-Local launcher for COS3.
-Serves the UI and starts/stops the NOS3 desktop container and simulation.
-
-Usage: python3 server.py   then open http://localhost:3000
+Starts and stops NOS3 for the COS3 UI.
 """
 
-import json
 import subprocess
 import threading
 import time
-import urllib.request
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlsplit
 
-from constants import (
-    ALLOWED_HOSTS,
-    BACKEND_DIR,
+from server.cosmos_client import cosmos_up
+from server.mission_config import custom
+from server.settings import (
     CONTAINER,
     CONTAINER_USER,
     COSMOS_POLL_S,
-    COSMOS_REQUEST_TIMEOUT_S,
-    COSMOS_TIMEOUT_S,
+    COSMOS_START_TIMEOUT_S,
     COSMOS_URL,
-    HOST,
     LAUNCH_TIMEOUT_S,
+    NOS3_REPO_DIR,
+    NOS3_42_DIR,
     NOS3_DIR,
     OPENC3_DIR,
-    PORT,
     ROOT_DIR,
     SETUP_TIMEOUT_S,
-    STATIC_FILES,
     STOP_TIMEOUT_S,
 )
 
-# First-time setup, in order. Each step runs only if its `test` check fails.
+# First-time setup, in order. Each step runs only if the folder it creates is missing.
+# (`make config` is not here: it runs on every launch, see Launcher.configure.)
+# `make` also runs `make gsw`, so the COSMOS step only runs when the flight software
+# is built but COSMOS isn't installed (e.g. the nos3-home volume was reset).
 SETUP_STEPS = [
-    (["-f", f"{NOS3_DIR}/cfg/build/launch.sh"], "make config", "Configuring NOS3…"),
-    (["-d", OPENC3_DIR], "make prep", "Preparing NOS3 (first run, this can take a while)…"),
+    (["-d", NOS3_42_DIR], "make prep", "Preparing NOS3 (first run, this can take a while)…"),
     (["-d", f"{NOS3_DIR}/fsw/build"], "make", "Building NOS3 (first run, this can take a while)…"),
+    (["-d", OPENC3_DIR], "make gsw", "Installing COSMOS (first run, this can take a while)…"),
 ]
 
-# Ignore any HTTP proxy settings when checking COSMOS on localhost
-_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-
+# `make` installs these two config files into the build folders. Copy them again after
+# each `make config`, so components and start time apply without rebuilding.
+INSTALL_CONFIG = (
+    "cp cfg/build/nos3_defs/cpu1_cfe_es_startup.scr fsw/build/exe/cpu1/cf/cfe_es_startup.scr"
+    " && cp cfg/build/sims/nos3-simulator.xml sims/build/bin/nos3-simulator.xml"
+)
 
 class LaunchError(Exception):
     """A launch or stop step failed; the message is shown on the page."""
@@ -78,15 +75,6 @@ def container_running():
     """Whether the nos3-desktop container is up."""
     code, output = run(["docker", "ps", "-q", "--filter", f"name=^{CONTAINER}$"], capture=True)
     return code == 0 and output.strip() != ""
-
-
-def cosmos_up():
-    """Whether COSMOS answers at COSMOS_URL."""
-    try:
-        with _opener.open(COSMOS_URL, timeout=COSMOS_REQUEST_TIMEOUT_S) as res:
-            return res.status < 400
-    except OSError:
-        return False
 
 
 class Launcher:
@@ -147,8 +135,24 @@ class Launcher:
         finally:
             self.stage = ""
 
-    def launch(self):
-        """Start the container, run any missing setup, launch NOS3, and wait for COSMOS."""
+    def configure(self, values):
+        """`make config` with the default configuration (values=None) or a custom one
+        (validated values from custom.validate)."""
+        if values is None:
+            self.stage = "Configuring NOS3 (default)…"
+            code, _ = nos3_exec("make config", timeout=SETUP_TIMEOUT_S)
+        else:
+            self.stage = "Configuring NOS3 (custom)…"
+            custom.write_spacecraft(values)
+            code, _ = nos3_exec(f"make config SC1_CFG={custom.SPACECRAFT_FILE}", timeout=SETUP_TIMEOUT_S)
+        if code != 0:
+            raise LaunchError("`make config` failed.")
+        if values is not None:
+            custom.patch_after_config(values)
+
+    def launch(self, values=None):
+        """Start the container, apply the configuration, run any missing setup,
+        launch NOS3, and wait for COSMOS."""
         was_running = container_running()
         if was_running and cosmos_up():
             self.container_up = True
@@ -157,10 +161,12 @@ class Launcher:
 
         if not was_running:
             self.stage = "Starting container…"
-            code, _ = run([str(BACKEND_DIR / "docker" / "run.sh")])
+            code, _ = run([str(NOS3_REPO_DIR / "docker" / "run.sh")])
             if code != 0:
                 raise LaunchError("Couldn't start the nos3-desktop container. Is Docker Desktop running?")
         self.container_up = True
+
+        self.configure(values)
 
         for check, command, stage in SETUP_STEPS:
             self.stage = "Checking setup…"
@@ -173,16 +179,21 @@ class Launcher:
             if code != 0:
                 raise LaunchError(f"`{command}` failed.")
 
+        self.stage = "Applying configuration…"
+        code, _ = nos3_exec(INSTALL_CONFIG)
+        if code != 0:
+            raise LaunchError("Couldn't copy the configuration into the NOS3 build folders.")
+
         self.stage = "Launching NOS3…"
         code, _ = nos3_exec("make launch", env=["DISPLAY=:1"], timeout=LAUNCH_TIMEOUT_S)
         if code != 0:
             raise LaunchError("`make launch` failed.")
 
         self.stage = "Waiting for COSMOS…"
-        deadline = time.monotonic() + COSMOS_TIMEOUT_S
+        deadline = time.monotonic() + COSMOS_START_TIMEOUT_S
         while not cosmos_up():
             if time.monotonic() > deadline:
-                raise LaunchError(f"COSMOS didn't respond at {COSMOS_URL} within {COSMOS_TIMEOUT_S // 60} minutes.")
+                raise LaunchError(f"COSMOS didn't respond at {COSMOS_URL} within {COSMOS_START_TIMEOUT_S // 60} minutes.")
             time.sleep(COSMOS_POLL_S)
         self.state = "running"
 
@@ -193,7 +204,7 @@ class Launcher:
             nos3_exec("make stop", timeout=STOP_TIMEOUT_S)
 
         self.stage = "Stopping container…"
-        code, _ = run([str(BACKEND_DIR / "docker" / "stop.sh")])
+        code, _ = run([str(NOS3_REPO_DIR / "docker" / "stop.sh")])
         if code != 0:
             raise LaunchError("Couldn't stop the nos3-desktop container.")
         self.container_up = False
@@ -201,82 +212,3 @@ class Launcher:
 
 
 launcher = Launcher()
-
-
-class Handler(BaseHTTPRequestHandler):
-    """Serves the UI files and the /api/status, /api/launch and /api/stop endpoints."""
-
-    def do_GET(self):
-        if not self._allowed():
-            return
-        path = urlsplit(self.path).path
-
-        if path in STATIC_FILES:
-            file, content_type = STATIC_FILES[path]
-            body = (ROOT_DIR / file).read_bytes()
-            self.send_response(200)
-            self.send_header("Content-Type", content_type)
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-        elif path == "/api/status":
-            if self._api_allowed():
-                self._send_json(200, launcher.status())
-        else:
-            self._send_json(404, {"error": "Not found"})
-
-    def do_POST(self):
-        if not self._allowed() or not self._api_allowed():
-            return
-        path = urlsplit(self.path).path
-
-        operations = {
-            "/api/launch": ("starting", launcher.launch),
-            "/api/stop": ("stopping", launcher.stop),
-        }
-        if path not in operations:
-            return self._send_json(404, {"error": "Not found"})
-
-        if launcher.begin(*operations[path]):
-            self._send_json(202, {"state": launcher.state})
-        else:
-            self._send_json(409, {"error": "Busy"})
-
-    def _allowed(self):
-        # Reject DNS rebinding and cross-site requests: the API runs local commands
-        if self.headers.get("Host") not in ALLOWED_HOSTS:
-            self._send_json(403, {"error": "Forbidden"})
-            return False
-        return True
-
-    def _api_allowed(self):
-        # A custom header forces a CORS preflight, which this server never approves
-        if self.headers.get("X-COS3") != "1":
-            self._send_json(403, {"error": "Forbidden"})
-            return False
-        return True
-
-    def _send_json(self, status, body):
-        data = json.dumps(body).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        self.wfile.write(data)
-
-    def log_message(self, format, *args):
-        # The page polls /api/status every few seconds; keep the terminal quiet
-        pass
-
-
-def main():
-    server = ThreadingHTTPServer((HOST, PORT), Handler)
-    print(f"COS3 launcher running at http://localhost:{PORT}")
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-
-
-if __name__ == "__main__":
-    main()

@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1440">
+  <title>COS3: Commands</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap"
+    rel="stylesheet" media="print" onload="this.media='all'">
+  <script src="assets/js/theme.js"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* Styles used only on this page */
+    th {
+      text-align: left;
+      font-weight: 600;
+      color: var(--txt-2);
+      border-bottom: 1.5px solid var(--line);
+      padding: 7px 12px;
+      background: var(--soft)
+    }
+
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 6px 12px
+    }
+
+    input,
+    select {
+      font: 400 13px 'IBM Plex Sans', sans-serif;
+      height: 36px;
+      border: 1.5px solid var(--line);
+      border-radius: 4px;
+      padding: 0 10px;
+      box-sizing: border-box;
+      background: var(--panel);
+      color: var(--txt);
+      width: 100%
+    }
+
+    .fld {
+      display: flex;
+      flex-direction: column;
+      gap: 5px
+    }
+
+    .pnl {
+      background: var(--panel);
+      border: 1.5px solid var(--line);
+      border-radius: 4px;
+      box-sizing: border-box;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0
+    }
+
+    .pk {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 34px;
+      padding: 0 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      background: none;
+      border: 0;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--txt)
+    }
+
+    .pk.on {
+      background: var(--accent);
+      color: var(--on-accent)
+    }
+
+    .st {
+      font: 600 11px 'IBM Plex Mono', monospace;
+      border: 1.5px solid var(--line-strong);
+      padding: 1px 6px;
+      border-radius: 3px
+    }
+
+    .hint {
+      margin: 0;
+      color: var(--txt-2);
+      font-size: 13px
+    }
+
+    .msg-err {
+      margin: 0;
+      color: var(--danger);
+      font-size: 13px
+    }
+
+    .i-slot {
+      display: inline-block;
+      width: 14px;
+      margin-right: 8px;
+      flex: none
+    }
+
+    .lst {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow: auto;
+      min-height: 0
+    }
+
+    /* Debug/Radio switch: a segmented control built from the shared .seg buttons */
+    .path {
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .path-switch {
+      display: flex;
+      width: 220px;
+      border: 1.5px solid var(--line-strong);
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--panel)
+    }
+
+    .path-switch .seg {
+      height: 32px;
+      font-size: 13px;
+      border-right-color: var(--line-strong)
+    }
+
+    .path-switch .seg:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -4px
+    }
+
+    /* Command details: parameter form */
+    .cform {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 0;
+      flex: 1
+    }
+
+    .chead {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .hazard {
+      border: 1.5px solid var(--line-strong);
+      border-left-width: 6px;
+      border-radius: 4px;
+      padding: 10px 12px;
+      background: var(--warn-bg);
+      font-size: 13px
+    }
+
+    .prm {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      overflow: auto;
+      align-content: start;
+      flex: 1;
+      min-height: 0
+    }
+
+    .pcard {
+      border: 1.5px solid var(--line);
+      border-radius: 4px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--panel)
+    }
+
+    .pcard.bad {
+      border-color: var(--danger)
+    }
+
+    .pcard label {
+      font: 600 13px 'IBM Plex Mono', monospace;
+      color: var(--txt)
+    }
+
+    .pcard input.mono {
+      font-family: 'IBM Plex Mono', monospace
+    }
+
+    .pcard [aria-invalid="true"] {
+      border-color: var(--danger)
+    }
+
+    .req {
+      font: 600 10px 'IBM Plex Sans', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--danger)
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 2px 12px;
+      margin: 0;
+      font-size: 12px
+    }
+
+    .meta dt {
+      color: var(--txt-2)
+    }
+
+    .meta dd {
+      margin: 0;
+      font-family: 'IBM Plex Mono', monospace;
+      overflow-wrap: anywhere
+    }
+
+    /* Hazardous-command confirmation banner */
+    .confirm {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    /* Sent commands */
+    .hist {
+      height: 250px;
+      flex: none
+    }
+
+    .hist-scroll {
+      overflow: auto;
+      min-height: 0;
+      flex: 1
+    }
+
+    .hist-scroll thead th {
+      position: sticky;
+      top: 0
+    }
+
+    .stat {
+      font: 600 11px 'IBM Plex Mono', monospace;
+      border: 1.5px solid var(--line-strong);
+      padding: 1px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      white-space: nowrap
+    }
+
+    .stat.sent {
+      background: var(--accent);
+      color: var(--on-accent)
+    }
+
+    .stat.rejected {
+      border-style: dashed;
+      border-color: var(--danger);
+      color: var(--danger)
+    }
+
+    .stat.failed {
+      border-color: var(--danger);
+      background: var(--danger);
+      color: var(--on-danger)
+    }
+
+    .cactions {
+      gap: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line)
+    }
+
+    .stat.sent::before, .stat.rejected::before, .stat.failed::before, .msg-err::before, .hazard strong::before {
+      content: "";
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 5px;
+      vertical-align: -2px;
+      background: currentColor;
+      -webkit-mask: var(--i) center/contain no-repeat;
+      mask: var(--i) center/contain no-repeat
+    }
+
+    .stat.sent::before { --i: var(--i-check) }
+    .stat.rejected::before, .stat.failed::before { --i: var(--i-cross) }
+    .msg-err::before, .hazard strong::before { --i: var(--i-warn) }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+  <template id="page">
+    <div class="wf"
+      style="width:100%;height:100%;display:flex;flex-direction:column;background:var(--bg);overflow:hidden">
+      <div data-cos3="header" data-status="running"></div>
+      <div style="flex:1;display:flex;min-height:0">
+        <div data-cos3="nav" data-active="commands"></div>
+        <main
+          style="flex:1;min-width:0;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <div class="row" style="gap:12px">
+            <h1 style="margin:0;font-size:22px">Commands</h1>
+            <div style="flex:1"></div>
+            <div class="path">
+              <div class="path-switch" role="group" aria-labelledby="path-label">
+                <button class="seg {{debugCls}}" onClick="{{toDebug}}" aria-pressed="{{isDebug}}"
+                  title="Send straight to the flight software (DEBUG interface)">Debug</button>
+                <button class="seg {{radioCls}}" onClick="{{toRadio}}" aria-pressed="{{isRadio}}"
+                  title="Send through the simulated radio (RADIO interface)">Radio</button>
+              </div>
+            </div>
+          </div>
+
+          <template data-if="{{confirm}}">
+            <div class="hazard confirm" role="alertdialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+              <div style="flex:1;min-width:0">
+                <strong id="confirm-title">Confirm hazardous command: {{confirm.label}}</strong>
+                <div id="confirm-text">{{confirm.reason}}</div>
+              </div>
+              <button class="btn sm" type="button" onClick="{{cancelConfirm}}">Cancel</button>
+              <button class="btn sm primary" type="button" onClick="{{acceptConfirm}}" disabled="{{busy}}">Send anyway</button>
+            </div>
+          </template>
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:16px">
+          <div style="flex:1;min-height:0;display:flex;gap:16px">
+            <section class="pnl" style="width:250px;flex:none" aria-label="Enabled components">
+              <div style="font-weight:600">Components</div>
+              <span class="srch"><span class="i i-search"></span><input id="component-search" type="search" placeholder="Search components" aria-label="Search components"
+                value="{{compQuery}}" onInput="{{searchComps}}"></span>
+              <template data-if="{{loading}}">
+                <p style="margin:0;color:var(--txt-2);font-size:13px">Loading components…</p>
+              </template>
+              <template data-if="{{error}}">
+                <p role="alert" style="margin:0;color:var(--danger);font-size:13px">{{error}}</p>
+              </template>
+              <template data-if="{{noCompMatches}}">
+                <p class="hint">No matching components.</p>
+              </template>
+              <div class="lst">
+                <template data-for="{{comps}}" data-as="c">
+                  <button class="pk {{c.cls}}" onClick="{{c.pick}}" title="{{c.key}}"><span class="{{c.ico}}"></span>{{c.name}}</button>
+                </template>
+              </div>
+              <template data-if="{{canToggle}}">
+                <button type="button" class="lnk" style="align-self:flex-start" onClick="{{toggleAll}}">{{toggleLabel}}</button>
+              </template>
+            </section>
+
+            <section class="pnl" style="width:330px;flex:none" aria-label="Commands">
+              <div style="font-weight:600">Commands</div>
+              <span class="srch"><span class="i i-search"></span><input id="command-search" type="search" placeholder="Search commands" aria-label="Search commands"
+                value="{{cmdQuery}}" onInput="{{searchCmds}}" disabled="{{noComponent}}"></span>
+              <template data-if="{{noComponent}}">
+                <p class="hint">Select a component.</p>
+              </template>
+              <template data-if="{{cmdLoading}}">
+                <p class="hint">Loading commands…</p>
+              </template>
+              <template data-if="{{cmdError}}">
+                <p role="alert" class="msg-err">{{cmdError}}</p>
+              </template>
+              <template data-if="{{noCmdMatches}}">
+                <p class="hint">No matching commands.</p>
+              </template>
+              <div class="lst">
+                <template data-for="{{cmds}}" data-as="c">
+                  <button class="pk {{c.cls}}" onClick="{{c.pick}}" title="{{c.description}}">
+                    {{c.label}}
+                    <template data-if="{{c.hazardous}}"><span class="st" style="margin-left:auto">HAZARDOUS</span></template>
+                  </button>
+                </template>
+              </div>
+            </section>
+
+            <section class="pnl" style="flex:1;min-width:0" aria-label="Command details">
+              <template data-if="{{noCommand}}">
+                <p class="hint">Select a command to see its details and set its parameters.</p>
+              </template>
+              <template data-if="{{defLoading}}">
+                <p class="hint">Loading command details…</p>
+              </template>
+              <template data-if="{{defError}}">
+                <p role="alert" class="msg-err">{{defError}}</p>
+              </template>
+
+              <template data-if="{{def}}">
+                <form class="cform" onSubmit="{{submitForm}}" novalidate aria-label="Command parameters">
+                  <div class="chead">
+                    <div class="row" style="gap:10px">
+                      <div style="font:600 16px 'IBM Plex Mono',monospace">{{def.name}}</div>
+                    </div>
+                    <template data-if="{{def.description}}">
+                      <p class="hint" style="margin-top:4px">{{def.description}}</p>
+                    </template>
+                  </div>
+
+                  <template data-if="{{def.hazardous}}">
+                    <div class="hazard" role="note"><strong>Hazardous command.</strong> {{hazardText}}</div>
+                  </template>
+
+                  <div class="row" style="gap:10px">
+                    <span class="h">Parameters</span>
+                  </div>
+
+                  <template data-if="{{noParams}}">
+                    <p class="hint">This command takes no parameters.</p>
+                  </template>
+
+                  <div class="prm">
+                    <template data-for="{{fields}}" data-as="f">
+                      <div class="pcard {{f.cardCls}}">
+                        <div class="row" style="gap:8px">
+                          <label for="{{f.id}}">{{f.name}}</label>
+                          <template data-if="{{f.required}}"><span class="req">Required</span></template>
+                        </div>
+                        <template data-if="{{f.description}}">
+                          <p class="hint">{{f.description}}</p>
+                        </template>
+
+                        <template data-if="{{f.isSelect}}">
+                          <select id="{{f.id}}" name="{{f.name}}" onChange="{{f.onChange}}"
+                            aria-invalid="{{f.invalid}}" aria-describedby="{{f.errorId}}">
+                            <template data-for="{{f.options}}" data-as="o">
+                              <option value="{{o.value}}" selected="{{o.sel}}">{{o.label}}</option>
+                            </template>
+                          </select>
+                        </template>
+                        <template data-if="{{f.isInput}}">
+                          <input id="{{f.id}}" name="{{f.name}}" type="{{f.type}}" inputmode="{{f.inputmode}}"
+                            class="{{f.inputCls}}" placeholder="{{f.placeholder}}" value="{{f.value}}"
+                            required="{{f.required}}" aria-invalid="{{f.invalid}}" aria-describedby="{{f.errorId}}"
+                            onInput="{{f.onInput}}" onChange="{{f.onChange}}" autocomplete="off" spellcheck="false">
+                        </template>
+
+                        <template data-if="{{f.error}}">
+                          <p class="msg-err" id="{{f.errorId}}" role="alert">{{f.error}}</p>
+                        </template>
+
+                        <dl class="meta">
+                          <template data-if="{{f.range}}"><dt>Range</dt><dd>{{f.range}}</dd></template>
+                          <template data-if="{{f.defaultText}}"><dt>Default</dt><dd>{{f.defaultText}}</dd></template>
+                          <template data-if="{{f.unitsOnly}}"><dt>Units</dt><dd>{{f.units}}</dd></template>
+                          <template data-if="{{f.conversion}}"><dt>Converted</dt><dd title="COSMOS applies this to the entered value before sending">{{f.conversion}}</dd></template>
+                        </dl>
+                      </div>
+                    </template>
+                  </div>
+
+                  <div class="row cactions">
+                    <template data-if="{{hasParams}}">
+                      <button class="btn sm" type="button" onClick="{{resetForm}}">Reset to defaults</button>
+                    </template>
+                    <div style="flex:1"></div>
+                    <button class="btn primary" type="submit" disabled="{{busy}}">{{sendLabel}}</button>
+                  </div>
+                </form>
+              </template>
+            </section>
+          </div>
+
+          <section class="pnl hist" aria-label="Command History">
+            <div class="row" style="gap:10px">
+              <span style="font-weight:600">Command History</span>
+            </div>
+            <template data-if="{{histError}}">
+              <p role="alert" class="msg-err">{{histError}}</p>
+            </template>
+            <template data-if="{{histEmpty}}">
+              <p class="hint">No commands sent yet.</p>
+            </template>
+            <template data-if="{{hasHistory}}">
+              <div class="hist-scroll">
+                <table>
+                  <thead>
+                          <tr><th>Time</th><th>Component</th><th>Command</th><th>Path</th><th>Parameters</th><th>Status</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    <template data-for="{{hist}}" data-as="r">
+                      <tr>
+                        <td class="mono" title="{{r.fullTime}}">{{r.time}}</td>
+                        <td title="{{r.target}}">{{r.component}}</td>
+                        <td>
+                          <div class="mono">{{r.name}}</div>
+                        </td>
+                        <td>{{r.path}}</td>
+                        <td class="mono" style="font-size:12px;overflow-wrap:anywhere">{{r.values}}</td>
+                        <td>
+                          <span class="stat {{r.status}}">{{r.statusLabel}}</span>
+                          <template data-if="{{r.error}}"><div class="msg-err" style="font-size:12px;margin-top:4px">{{r.error}}</div></template>
+                        </td>
+                        <td style="text-align:right">
+                          <button class="btn sm" type="button" onClick="{{r.resend}}" disabled="{{busy}}"
+                            aria-label="Resend {{r.name}}">Resend</button>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+          </section>
+          </div>
+        </main>
+      </div>
+    </div>
+  </template>
+
+  <script src="assets/js/cos3-runtime.js"></script>
+  <script src="assets/js/command-form.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/layout.js"></script>
+  <script>
+    function matches(query, ...fields) {
+      const q = query.trim().toLowerCase();
+      return !q || fields.some((f) => (f || '').toLowerCase().includes(q));
+    }
+
+    function searchHandler(component, stateKey) {
+      return (e) => {
+        const {id, value, selectionStart, selectionEnd} = e.target;
+        component.setState({[stateKey]: value});
+        const input = document.getElementById(id);
+        if (input) {
+          input.focus();
+          input.setSelectionRange(selectionStart, selectionEnd);
+        }
+      };
+    }
+
+    function rerenderKeepingFocus(update) {
+      setTimeout(() => {
+        const el = document.activeElement;
+        const id = el && el.id;
+        const range = el && el.tagName === 'INPUT' ? [el.selectionStart, el.selectionEnd] : null;
+        update();
+        const next = id && document.getElementById(id);
+        if (!next) return;
+        next.focus();
+        if (range && next.setSelectionRange) {
+          try { next.setSelectionRange(range[0], range[1]); } catch (e) { /* not a text input */ }
+        }
+      }, 0);
+    }
+
+    const EMPTY_FORM = {cmdSel: null, def: null, defLoading: false, defError: null, fieldErrors: {}, formStatus: null};
+
+    const SEND_RESULT = {
+      sent: (r) => `Sent ${r.name}.`,
+      rejected: (r) => `COSMOS rejected ${r.name}: ${r.error}`,
+      failed: (r) => r.error
+    };
+    const STATUS_LABELS = {sent: 'Sent', rejected: 'Rejected', failed: 'Failed'};
+    const COMPONENT_ICONS = {rw: 'wheel', torquer: 'magnet', css: 'sun', radio: 'link', eps: 'battery'};
+
+    // A history record -> the values its table row shows. `componentNames` maps component key -> name.
+    function historyRow(r, componentNames, resend) {
+      const when = new Date(r.time);
+      const values = Object.entries(r.values || {}).map(([k, v]) => `${k}=${v}`).join(', ');
+
+      return {
+        time: when.toLocaleTimeString(),
+        fullTime: when.toLocaleString(),
+        name: r.name,
+        target: r.target,
+        component: componentNames[r.component] || r.target,
+        path: r.path,
+        values: values || 'defaults',
+        status: r.status,
+        statusLabel: STATUS_LABELS[r.status] || r.status,
+        error: r.error,
+        resend
+      };
+    }
+
+    class Component extends DCLogic {
+      constructor(props) {
+        super(props);
+        this.state = {
+          loading: true, error: null, spacecraft: null, sel: null,
+          path: 'DEBUG',
+          cmds: null, cmdLoading: false, cmdError: null,
+          compQuery: '', cmdQuery: '', showAll: false,
+          ...EMPTY_FORM,
+          busy: false, 
+          confirm: null, 
+          hist: [], histLoaded: false, histError: null
+        };
+        this.formValues = {};
+        this.touched = new Set();
+        this.validationSeq = 0;
+        this.searchComps = searchHandler(this, 'compQuery');
+        this.searchCmds = searchHandler(this, 'cmdQuery');
+      }
+
+      componentDidMount() {
+        this.loadComponents();
+        this.loadHistory();
+        window.addEventListener('cos3:logged-in', () => this.loadCommands());
+      }
+
+      async loadHistory() {
+        const res = await COS3.api.history();
+        if (res.error) return this.setState({histError: res.error});
+        this.setState({hist: res.commands, histLoaded: true, histError: null});
+      }
+
+      async runSend(label, request, report, confirmHazardous = false) {
+        this.setState({busy: true, confirm: null});
+        report('Sending…');
+        const res = await request(confirmHazardous);
+        this.setState({busy: false});
+
+        if (res.status === 409 && res.confirm) {
+          report('Waiting for confirmation.');
+          this.setState({
+            confirm: {label, reason: res.confirm, accept: () => this.runSend(label, request, report, true)}
+          });
+          return null;
+        }
+        if (res.record) {
+          this.setState({hist: [res.record, ...this.state.hist.filter((r) => r.id !== res.record.id)], histLoaded: true});
+          report(SEND_RESULT[res.record.status] ? SEND_RESULT[res.record.status](res.record) : res.record.status);
+          return res;
+        }
+        report(res.error);
+        return res;
+      }
+
+      cancelConfirm() {
+        this.setState({confirm: null, formStatus: this.state.def ? 'Not sent.' : null});
+      }
+
+      async sendForm() {
+        const def = this.state.def;
+        def.parameters.forEach((p) => this.touched.add(p.name));
+        this.validationSeq++; 
+        const values = {...this.formValues};
+        const report = (message) => { if (def === this.state.def) this.setState({formStatus: message}); };
+        const res = await this.runSend(def.name, (confirm) => COS3.api.sendCommand(def.target, def.name, values, confirm), report);
+        if (!res || def !== this.state.def) return;
+        if (res.errors) {
+          const n = Object.keys(res.errors).length;
+          this.setState({fieldErrors: res.errors, formStatus: `Fix ${n} field${n === 1 ? '' : 's'} before sending.`});
+        } else if (res.record) {
+          this.setState({fieldErrors: {}});
+        }
+      }
+
+      // Send a command from the history again, with the same values. The new row shows the
+      // outcome; only a failure that produced no record (e.g. the server is down) needs a message.
+      async resend(record) {
+        const res = await this.runSend(record.name, (confirm) => COS3.api.resend(record.id, confirm), () => {});
+        this.setState({histError: res && !res.record ? res.error : null});
+      }
+
+      async loadComponents() {
+        this.setState({loading: true, error: null});
+        const res = await COS3.api.components();
+        if (res.error) {
+          return this.setState({loading: false, error: res.error});
+        }
+
+        const sc = res.spacecraft;
+
+        this.setState({
+          loading: false,
+          spacecraft: sc,
+          error: sc && sc.components.length ? null : 'No components are enabled in this simulation.'
+        });
+      }
+
+      // Load the selected component's commands for the selected path
+      async loadCommands() {
+        const {sel, path} = this.state;
+        if (!sel) return;
+        this.formValues = {};
+        this.touched = new Set();
+        this.validationSeq++;
+        this.setState({cmds: null, cmdLoading: true, cmdError: null, ...EMPTY_FORM});
+        const res = await COS3.api.commands(sel, path);
+        if (sel !== this.state.sel || path !== this.state.path) return; // selection changed while loading
+        if (res.error) {
+          return this.setState({cmdLoading: false, cmdError: res.error});
+        }
+        this.setState({
+          cmdLoading: false,
+          cmds: res.commands,
+          cmdError: res.commands.length ? null : 'This component has no commands.'
+        });
+      }
+
+      // Load one command's details and start each parameter at its default
+      async loadCommand(cmd) {
+        const id = `${cmd.target} ${cmd.name}`;
+        if (id === this.state.cmdSel && (this.state.def || this.state.defLoading)) return;
+        this.formValues = {};
+        this.touched = new Set();
+        this.validationSeq++;
+        this.setState({...EMPTY_FORM, cmdSel: id, defLoading: true});
+        const res = await COS3.api.command(cmd.target, cmd.name);
+        if (id !== this.state.cmdSel) return; // another command was picked while loading
+        if (res.error) return this.setState({defLoading: false, defError: res.error});
+        this.formValues = COS3.commandForm.defaults(res);
+        this.setState({defLoading: false, def: res});
+      }
+
+      // Ask the server (server/commands/validation.py) to check the current values. Errors are shown
+      // only for fields in `this.touched`. Resolves to the number of errors shown, or null if
+      // the reply was stale or the check failed.
+      async validateForm() {
+        const def = this.state.def;
+        if (!def) return null;
+        const seq = ++this.validationSeq;
+        const res = await COS3.api.validateCommand(def.target, def.name, {...this.formValues});
+        if (seq !== this.validationSeq || def !== this.state.def) return null; // a newer check or command
+        if (res.error) {
+          rerenderKeepingFocus(() => this.setState({formStatus: `Couldn't check the values: ${res.error}`}));
+          return null;
+        }
+        const fieldErrors = Object.fromEntries(
+          Object.entries(res.errors).filter(([name]) => this.touched.has(name)));
+        const unchanged = JSON.stringify(fieldErrors) === JSON.stringify(this.state.fieldErrors);
+        if (!unchanged || this.state.formStatus) {
+          rerenderKeepingFocus(() => this.setState({fieldErrors, formStatus: null}));
+        }
+        return Object.keys(fieldErrors).length;
+      }
+
+      // The operator left a field (or picked a state): check it on the server
+      fieldChanged(param, value) {
+        this.formValues[param.name] = value;
+        this.touched.add(param.name);
+        this.validateForm();
+      }
+
+      resetForm() {
+        this.formValues = COS3.commandForm.defaults(this.state.def);
+        this.touched = new Set();
+        this.validationSeq++; // ignore any check still in flight
+        this.setState({fieldErrors: {}, formStatus: 'Reset to defaults.'});
+      }
+
+      submitForm(event) {
+        event.preventDefault();
+        if (!this.state.busy) this.sendForm();
+      }
+
+      renderVals() {
+        const s = this.state;
+        const sc = s.spacecraft;
+        const list = sc ? sc.components : [];
+        const componentNames = Object.fromEntries(list.map((c) => [c.key, c.name]));
+        const mainList = list.filter((c) => COMPONENT_ICONS[c.key] || c.key === s.sel);
+        const canToggle = mainList.length > 0 && mainList.length < list.length;
+        const shown = s.showAll || !canToggle ? list : mainList;
+        const comps = shown.filter((c) => matches(s.compQuery, c.name, c.key)).map((c) => ({
+          key: c.key,
+          name: c.name,
+          ico: COMPONENT_ICONS[c.key] ? 'i i-' + COMPONENT_ICONS[c.key] : 'i-slot',
+          cls: c.key === s.sel ? 'on' : '',
+          pick: () => {
+            if (c.key === s.sel) return;
+            // New component: its commands are different, so start their search fresh
+            this.setState({sel: c.key, cmdQuery: ''}); // setState is synchronous in cos3-runtime
+            this.loadCommands();
+          }
+        }));
+
+        const allCmds = s.cmds || [];
+        const cmds = allCmds.filter((c) => matches(s.cmdQuery, c.name, c.description)).map((c) => ({
+          label: c.name,
+          description: c.description,
+          hazardous: c.hazardous,
+          cls: `${c.target} ${c.name}` === s.cmdSel ? 'on' : '',
+          pick: () => this.loadCommand(c)
+        }));
+
+        const def = s.def;
+        const params = def ? def.parameters : [];
+        const fields = params.map((p) => {
+          const f = COS3.commandForm.toField(p, this.formValues[p.name], s.fieldErrors[p.name]);
+          return Object.assign(f, {
+            cardCls: f.error ? 'bad' : '',
+            inputCls: f.mono ? 'mono' : '',
+            unitsOnly: !f.range && !!f.units,
+            onInput: (e) => { this.formValues[p.name] = e.target.value; },
+            onChange: (e) => this.fieldChanged(p, e.target.value)
+          });
+        });
+
+        const setPath = (path) => () => {
+          if (path === s.path) return;
+          this.setState({path});
+          this.loadCommands();
+        };
+
+        return {
+          loading: s.loading,
+          error: s.error,
+          comps,
+          count: list.length,
+          compQuery: s.compQuery,
+          searchComps: this.searchComps,
+          noCompMatches: list.length > 0 && comps.length === 0,
+          canToggle,
+          toggleAll: () => this.setState({showAll: !s.showAll}),
+          toggleLabel: s.showAll ? 'Show main components only' : `Show all (${list.length})`,
+
+          cmds,
+          cmdCount: cmds.length,
+          cmdQuery: s.cmdQuery,
+          searchCmds: this.searchCmds,
+          noCmdMatches: allCmds.length > 0 && cmds.length === 0,
+          noComponent: !s.sel,
+          cmdLoading: s.cmdLoading,
+          cmdError: s.cmdError,
+          isDebug: s.path === 'DEBUG', isRadio: s.path === 'RADIO',
+          debugCls: s.path === 'DEBUG' ? 'on' : '', radioCls: s.path === 'RADIO' ? 'on' : '',
+          toDebug: setPath('DEBUG'), toRadio: setPath('RADIO'),
+
+          noCommand: !s.cmdSel,
+          defLoading: s.defLoading,
+          defError: s.defError,
+          def,
+          pathLabel: def && def.target.endsWith('_RADIO') ? 'Radio' : 'Debug',
+          hazardText: def && def.hazardousDescription
+            ? def.hazardousDescription
+            : 'Sending it will need an explicit confirmation.',
+          paramSummary: def ? COS3.commandForm.summary(def) : '',
+          noParams: !!def && params.length === 0,
+          hasParams: params.length > 0,
+          fields,
+          formStatus: s.formStatus,
+          resetForm: () => this.resetForm(),
+          submitForm: (e) => this.submitForm(e),
+          busy: s.busy,
+          sendLabel: s.busy ? 'Sending…' : 'Send',
+
+          confirm: s.confirm,
+          cancelConfirm: () => this.cancelConfirm(),
+          acceptConfirm: () => s.confirm && s.confirm.accept(),
+
+          hist: s.hist.map((r) => historyRow(r, componentNames, () => this.resend(r))),
+          hasHistory: s.hist.length > 0,
+          histEmpty: s.histLoaded && s.hist.length === 0,
+          histError: s.histError
+        };
+      }
+    }
+
+    COS3.mount(Component, {});
+  </script>
+</body>
+
+</html>
