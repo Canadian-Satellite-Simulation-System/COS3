@@ -19,6 +19,7 @@ from server.mission_config.default import ConfigError, load_default_config
 from server.settings import ALLOWED_HOSTS, HOST, PORT, ROOT_DIR
 from server.simulation import launcher
 from server.telemetry import reader as telemetry
+from server import css_mode
 
 UI_DIR = ROOT_DIR / "ui"
 PAGES_DIR = UI_DIR / "pages"
@@ -66,6 +67,8 @@ class Handler(SimpleHTTPRequestHandler):
 
         if path == "/api/status":
             self._send_json(200, launcher.status())
+        elif path == "/api/css/mode":
+            self._css_mode()
         elif path == "/api/history":
             self._send_json(200, {"commands": [r.to_dict() for r in history.list()]})
         elif path == "/api/session":
@@ -91,6 +94,35 @@ class Handler(SimpleHTTPRequestHandler):
         else:
             self._send_json(404, {"error": "Not found"})
 
+    def _css_mode(self, change=False):
+        """Retrieve or change the CSS data provider mode."""
+
+        if launcher.is_busy():
+            return self._send_json(
+                409, {"error": "Simulation is starting or stopping."}
+            )
+
+        if not self._component_enabled("css"):
+            return
+
+        try:
+            if change:
+                mode = self._read_json().get("mode")
+                result = css_mode.set_mode(mode)
+            else:
+                result = css_mode.get_mode()
+
+            self._send_json(200, result)
+
+        except ValueError as err:
+            self._send_json(400, {"error": str(err)})
+
+        except (OSError, RuntimeError) as err:
+            self._send_json(
+                503,
+                {"error": f"CSS switching provider unavailable: {err}"}
+            )
+    
     def _telemetry(self, key, packet, path):
         """GET /api/telemetry/{key}?packet=data|hk&path=DEBUG|RADIO: a packet's latest values, if the component is enabled."""
         try:
@@ -253,6 +285,8 @@ class Handler(SimpleHTTPRequestHandler):
 
         if path == "/api/login":
             return self._login()
+        if path == "/api/css/mode":
+            return self._css_mode(change=True)
         if match := COMMAND_VALIDATE.match(path):
             return self._validate_command(match["target"], match["name"])
         if match := COMMAND.match(path):

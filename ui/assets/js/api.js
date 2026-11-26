@@ -105,6 +105,13 @@
     // Resolves to { error } if the server refuses the values.
     launch: (values) => request('POST', '/api/launch', values ? { values } : undefined),
     stop: () => request('POST', '/api/stop'),
+
+    // Retrieve the current CSS data provider mode.
+    cssMode: () => request('GET', '/api/css/mode'),
+
+    // Switch between simulated and hardware CSS data.
+    setCssMode: (mode) => request('POST', '/api/css/mode', { mode }),
+
     // Latest values of a component's telemetry packet ('data' or 'hk'): { component, target, packet,
     // receivedCount, spacecraftTime, lastUpdate, rows, allItems }, or { error, status } (401 = log in to COSMOS)
     telemetry: (componentKey, packet = 'data', path = 'DEBUG') =>

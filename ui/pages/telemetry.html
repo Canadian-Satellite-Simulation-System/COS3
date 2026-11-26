@@ -56,12 +56,33 @@
                 <div class="row" style="gap:12px">
                     <h1 style="margin:0;font-size:22px">Telemetry</h1>
                     <div style="flex:1"></div>
-                    <span style="font-size:12px;color:var(--txt-2)">View from</span>
-                    <div role="group" aria-label="Telemetry source" style="display:flex">
-                        <button class="btn sm {{gCls}}" onClick="{{toG}}" style="border-radius:4px 0 0 4px">Ground software</button>
-                        <button class="btn sm {{fCls}}" onClick="{{toF}}" style="border-radius:0 4px 4px 0;border-left:0">Flight software (direct)</button>
+                    
+                    <span style="font-size:12px;color:var(--txt-2)">
+                        CSS data source
+                    </span>
+
+                    <div role="group" aria-label="CSS data source" style="display:flex">
+                        <button class="btn sm {{simCls}}"
+                                onClick="{{toSim}}"
+                                disabled="{{modeDisabled}}"
+                                style="border-radius:4px 0 0 4px">
+                            Simulated
+                        </button>
+
+                        <button class="btn sm {{hilCls}}"
+                                onClick="{{toHil}}"
+                                disabled="{{modeDisabled}}"
+                                style="border-radius:0 4px 4px 0;border-left:0">
+                            Hardware
+                        </button>
                     </div>
-                    <span class="tag">{{srcTag}}</span>
+
+                    <span class="tag">◆ ESP32: Unknown</span>
+
+                    <span style="font-size:12px;color:var(--danger)">
+                        {{modeError}}
+                    </span>
+
                 </div>
 
                 <div style="flex:1;min-height:0;display:flex;gap:16px">
@@ -247,18 +268,91 @@
     }
 
     class Component extends DCLogic {
-      constructor(props) {
-        super(props);
-        this.state = {
-          sel: 'Coarse sun sensors', src: 'g',
-          css: EMPTY_CSS, cssError: '', cssSel: 'RAW_CSS_0',
-          hk: EMPTY_HK, hkError: ''
-        };
-        this.pollCss();
-        setInterval(() => this.pollCss(), POLL_MS);
-        this.pollHk();
-        setInterval(() => this.pollHk(), HK_POLL_MS);
-      }
+        constructor(props) {
+            super(props);
+
+            this.state = {
+                sel: 'Coarse sun sensors',
+
+                mode: null,
+                modeBusy: false,
+                modeError: '',
+
+                css: EMPTY_CSS, cssError: '', cssSel: 'RAW_CSS_0',
+                hk: EMPTY_HK, hkError: ''
+            };
+
+            this.modePolling = false;
+            this.modeVersion = 0;
+
+            this.pollMode();
+            setInterval(() => this.pollMode(), 2000);
+
+            this.pollCss();
+            setInterval(() => this.pollCss(), POLL_MS);
+
+            this.pollHk();
+            setInterval(() => this.pollHk(), HK_POLL_MS);
+        }
+
+        async pollMode() {
+            if (this.state.modeBusy || this.modePolling) return;
+
+            this.modePolling = true;
+            const version = this.modeVersion;
+
+            try {
+                const result = await COS3.api.cssMode();
+
+                if (version !== this.modeVersion) return;
+
+                if (result.error) {
+                    this.setState({
+                        mode: null,
+                        modeError: result.error
+                    });
+                    return;
+                }
+
+                this.setState({
+                mode: result.mode,
+                modeError: ''
+                });
+            } finally {
+                this.modePolling = false;
+            }
+        }
+
+        async switchMode(mode) {
+            if (this.state.modeBusy) return;
+            if (this.state.mode === mode) return;
+
+            this.modeVersion++;
+
+            this.setState({
+                modeBusy: true,
+                modeError: ''
+            });
+
+            const result = await COS3.api.setCssMode(mode);
+
+            if (result.error) {
+                this.setState({
+                mode: null,
+                modeBusy: false,
+                modeError: result.error
+                });
+                return;
+            }
+
+            this.setState({
+                mode: result.mode,
+                modeBusy: false,
+                modeError: ''
+            });
+
+            this.pollCss();
+        }
 
       // Ask the backend for the latest CSS data packet (only while that tab is open).
       async pollCss() {
@@ -297,7 +391,8 @@
         const alarms = isCss ? [] : [{ l: 'RED', ls: red, item: 'WHEEL_2_SPEED' }, { l: 'YELLOW', ls: yel, item: 'MOMENTUM' }];
         const LIM_ICO = { RED: 'i i-error', YELLOW: 'i i-warn' };
         for (const x of items.concat(alarms)) x.ic = LIM_ICO[x.l] || '';
-        const g = this.state.src === 'g';
+        const sim = this.state.mode === 'SIM';
+        const hil = this.state.mode === 'HIL';
         return {
           pages, items, alarms, sel: this.state.sel,
           css: this.state.css,
@@ -312,9 +407,14 @@
           cssShow: isCss ? '' : hide, genShow: isCss ? hide : '',
           tableRowStyle: isCss ? 'flex:none;' : 'flex:1;min-height:0;',
           noAlarmShow: alarms.length ? hide : '',
-          gCls: g ? 'on' : '', fCls: g ? '' : 'on',
-          srcTag: g ? '◆ Ground software (COSMOS)' : '◆ Flight software direct',
-          toG: () => this.setState({ src: 'g' }), toF: () => this.setState({ src: 'f' })
+          simCls: sim ? 'on' : '',
+          hilCls: hil ? 'on' : '',
+
+          modeDisabled: this.state.modeBusy || this.state.mode === null,
+          modeError: this.state.modeError,
+
+          toSim: () => this.switchMode('SIM'),
+          toHil: () => this.switchMode('HIL')
         };
       }
     }
