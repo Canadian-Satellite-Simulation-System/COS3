@@ -71,6 +71,49 @@ def nos3_exec(command, env=(), timeout=None):
     )
 
 
+# Simulation speeds the header offers. The NOS3 time driver only doubles or halves its rate.
+SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16, 32]
+
+# Sends time-driver commands through NOS3's command-bus bridge (nos-sim-bridge, TCP 12020):
+# one JSON line per command, forwarded to the time driver's "time-command" node.
+TIME_COMMAND_SCRIPT = (
+    'for c in "$@"; do printf \'{"node":"time-command","cmd":"%s"}\\n\' "$c"; done'
+    " > /dev/tcp/127.0.0.1/12020"
+)
+
+
+def time_command(*commands):
+    """Send PAUSE, UNPAUSE, DECREASE (2x faster) or INCREASE (2x slower) to the NOS3 time driver."""
+    code, _ = run(
+        ["docker", "exec", CONTAINER, "docker", "exec", "nos-sim-bridge", "bash", "-c", TIME_COMMAND_SCRIPT, "_", *commands],
+        timeout=30,
+    )
+    if code != 0:
+        raise LaunchError("Couldn't reach the NOS3 time driver.")
+
+
+# Name of the running mission (git-ignored build folder)
+MISSION_NAME_FILE = custom.BUILD_DIR / "cos3-mission-name.txt"
+
+
+def _read_mission_name():
+    try:
+        return MISSION_NAME_FILE.read_text(encoding="utf-8").strip() or None
+    except OSError:
+        return None
+
+
+def _write_mission_name(name):
+    try:
+        if name:
+            MISSION_NAME_FILE.parent.mkdir(parents=True, exist_ok=True)
+            MISSION_NAME_FILE.write_text(name, encoding="utf-8")
+        else:
+            MISSION_NAME_FILE.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def container_running():
     """Whether the nos3-desktop container is up."""
     code, output = run(["docker", "ps", "-q", "--filter", f"name=^{CONTAINER}$"], capture=True)
@@ -87,6 +130,10 @@ class Launcher:
         self.stage = ""
         self.error = None
         self.container_up = False
+        # Kept in a file too, so the header still shows it after a server restart
+        self.mission_name = _read_mission_name()
+        self.paused = False
+        self.speed = 1
 
     def is_busy(self):
         return self.state in ("starting", "stopping")
@@ -99,7 +146,34 @@ class Launcher:
             "stage": self.stage,
             "error": self.error,
             "containerRunning": self.container_up,
+            "missionName": self.mission_name,
+            "paused": self.paused,
+            "speed": self.speed,
         }
+
+    def _check_running(self):
+        if self.state != "running":
+            raise LaunchError("The simulation isn't running.")
+
+    def pause(self):
+        self._check_running()
+        time_command("PAUSE")
+        self.paused = True
+
+    def resume(self):
+        self._check_running()
+        time_command("UNPAUSE")
+        self.paused = False
+
+    def set_speed(self, speed):
+        """Step the time driver up or down (x2 per command) to reach one of SPEEDS."""
+        if speed not in SPEEDS:
+            raise ValueError("Unknown speed.")
+        self._check_running()
+        steps = SPEEDS.index(speed) - SPEEDS.index(self.speed)
+        if steps:
+            time_command(*(["DECREASE"] * steps if steps > 0 else ["INCREASE"] * -steps))
+        self.speed = speed
 
     def refresh(self):
         """Re-detect state from Docker, so a page reload or server restart
@@ -150,9 +224,13 @@ class Launcher:
         if values is not None:
             custom.patch_after_config(values)
 
-    def launch(self, values=None):
+    def launch(self, values=None, mission_name=None):
         """Start the container, apply the configuration, run any missing setup,
         launch NOS3, and wait for COSMOS."""
+        self.mission_name = mission_name
+        _write_mission_name(mission_name)
+        self.paused = False
+        self.speed = 1
         was_running = container_running()
         if was_running and cosmos_up():
             self.container_up = True
@@ -208,6 +286,10 @@ class Launcher:
         if code != 0:
             raise LaunchError("Couldn't stop the nos3-desktop container.")
         self.container_up = False
+        self.mission_name = None
+        _write_mission_name(None)
+        self.paused = False
+        self.speed = 1
         self.state = "idle"
 
 
