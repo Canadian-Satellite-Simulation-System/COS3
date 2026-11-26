@@ -13,11 +13,11 @@ from server.commands.sender import CommandSender, ConfirmationRequired, Validati
 from server.commands.validation import validate
 from server.components import CommandPath, UnknownComponent, component_for
 from server.cosmos_client import CosmosError, CosmosJSONAPIClient, CosmosRejected, CosmosUnavailable, NotAuthenticated
-from server.mission_config import custom
+from server.mission_config import custom, saved
 from server.mission_config.current import load_enabled_components
 from server.mission_config.default import ConfigError, load_default_config
 from server.settings import ALLOWED_HOSTS, HOST, PORT, ROOT_DIR
-from server.simulation import launcher
+from server.simulation import LaunchError, launcher
 from server.telemetry import reader as telemetry
 
 UI_DIR = ROOT_DIR / "ui"
@@ -36,6 +36,7 @@ COMMAND = re.compile(r"^/api/commands/(?P<target>[A-Z0-9_]+)/(?P<name>[A-Z0-9_]+
 COMMAND_VALIDATE = re.compile(r"^/api/commands/(?P<target>[A-Z0-9_]+)/(?P<name>[A-Z0-9_]+)/validate$")
 RESEND = re.compile(r"^/api/history/(?P<id>\d+)/resend$")
 TELEMETRY = re.compile(r"^/api/telemetry/(?P<key>[a-z0-9_]+)$")
+SAVED_CONFIG = re.compile(r"^/api/configs/(?P<file>[A-Za-z0-9_.-]+\.json)$")
 
 
 def enabled_component_keys():
@@ -75,6 +76,13 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json(200, load_default_config())
             except ConfigError as err:
                 self._send_json(500, {"error": str(err)})
+        elif path == "/api/configs":
+            self._send_json(200, {"configs": saved.list_saved()})
+        elif match := SAVED_CONFIG.match(path):
+            try:
+                self._send_json(200, saved.load(match["file"]))
+            except ValueError as err:
+                self._send_json(404, {"error": str(err)})
         elif path == "/api/components":
             try:
                 self._send_json(200, load_enabled_components())
@@ -260,14 +268,20 @@ class Handler(SimpleHTTPRequestHandler):
         if match := RESEND.match(path):
             return self._resend(int(match["id"]))
 
+        if path in ("/api/configs", "/api/pause", "/api/resume", "/api/speed"):
+            return self._sim_control(path)
+
         if path == "/api/launch":
-            # Optional body {"values": {...}} for a custom configuration; no body = default
+            # Optional body {"values": {...}, "missionName": "..."} for a custom configuration; no body = default
             try:
-                values = self._read_json().get("values")
+                body = self._read_json()
+                values = body.get("values")
                 values = custom.validate(values) if values is not None else None
-            except ValueError as err:
+                name = str(body.get("missionName") or "").strip() or (
+                    "Custom mission" if values is not None else load_default_config()["name"])
+            except (ValueError, ConfigError) as err:
                 return self._send_json(400, {"error": str(err)})
-            operation = ("starting", lambda: launcher.launch(values))
+            operation = ("starting", lambda: launcher.launch(values, name))
         elif path == "/api/stop":
             operation = ("stopping", launcher.stop)
         else:
@@ -279,6 +293,24 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(202, {"state": launcher.state})
         else:
             self._send_json(409, {"error": "Busy"})
+
+    def _sim_control(self, path):
+        """POST /api/configs (save a configuration), /api/pause, /api/resume, /api/speed {speed}."""
+        try:
+            body = self._read_json()
+            if path == "/api/configs":
+                return self._send_json(201, saved.save(body.get("missionName"), body.get("values")))
+            if path == "/api/pause":
+                launcher.pause()
+            elif path == "/api/resume":
+                launcher.resume()
+            else:
+                launcher.set_speed(body.get("speed"))
+        except ValueError as err:
+            return self._send_json(400, {"error": str(err)})
+        except LaunchError as err:
+            return self._send_json(409, {"error": str(err)})
+        self._send_json(200, launcher.status())
 
     def _login(self):
         """Check the password with COSMOS via CosmosJSONAPIClient.authenticate."""

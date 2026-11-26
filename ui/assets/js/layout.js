@@ -50,11 +50,11 @@
   // Header states. The keys match the server's /api/status `state` (plus "not-started",
   // an alias of "idle"). A page's data-status is only shown until the server answers.
   const STATUS = {
-    'running': { dot: 'dot', label: 'RUNNING', time: '[hh:mm:ss]', start: false, pause: true, stop: true },
-    'starting': { dot: 'dot off', label: 'STARTING…', time: '--:--:--', start: false, pause: false, stop: false },
-    'stopping': { dot: 'dot off', label: 'STOPPING…', time: '--:--:--', start: false, pause: false, stop: false },
-    'error': { dot: 'dot off', label: 'ERROR', time: '--:--:--', start: false, pause: false, stop: false },
-    'idle': { dot: 'dot off', label: 'NOT STARTED', time: '--:--:--', start: false, pause: false, stop: false }
+    'running': { dot: 'dot', label: 'RUNNING', start: false, pause: true, stop: true },
+    'starting': { dot: 'dot off', label: 'STARTING…', start: false, pause: false, stop: false },
+    'stopping': { dot: 'dot off', label: 'STOPPING…', start: false, pause: false, stop: false },
+    'error': { dot: 'dot off', label: 'ERROR', start: false, pause: false, stop: false },
+    'idle': { dot: 'dot off', label: 'NOT STARTED', start: false, pause: false, stop: false }
   };
   STATUS['not-started'] = STATUS.idle;
 
@@ -65,6 +65,10 @@
   // page is opened without the server, e.g. as a file), so the page's data-status shows.
   const STATUS_POLL_MS = 3000;
   let liveState = null;
+  // Last /api/status answer (missionName, paused, speed)
+  let liveStatus = {};
+  // Simulation speeds, as in server/simulation.py (the NOS3 time driver doubles or halves its rate)
+  const SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16, 32];
   // Key of the current page (the nav's data-active), set when the page's nav is built
   let currentPage = null;
 
@@ -87,11 +91,26 @@
     for (const el of root.querySelectorAll('[data-cos3-status]')) {
       el.querySelector('[data-cos3-dot]').className = s.dot;
       el.querySelector('[data-cos3-label]').textContent = s.label;
-      el.querySelector('[data-cos3-time]').textContent = '· ' + s.time + ' UTC';
     }
     for (const [name, on] of [['start', s.start], ['pause', s.pause], ['stop', s.stop]]) {
       for (const b of root.querySelectorAll('[data-cos3-btn="' + name + '"]')) b.disabled = !on;
     }
+
+    const running = liveState === 'running';
+    const paused = running && liveStatus.paused;
+    for (const el of root.querySelectorAll('[data-cos3-mission]')) el.textContent = liveStatus.missionName || '—';
+    if (paused) for (const el of root.querySelectorAll('[data-cos3-label]')) el.textContent = 'PAUSED';
+    for (const b of root.querySelectorAll('[data-cos3-btn="pause"]')) b.textContent = paused ? '▶ Resume' : '❚❚ Pause';
+    for (const sel of root.querySelectorAll('[data-cos3-speed]')) {
+      sel.disabled = !running;
+      sel.value = String(liveStatus.speed || 1);
+    }
+  }
+
+  function setStatus(res) {
+    liveStatus = res;
+    setState(res.state);
+    applyStatus(document);
   }
 
   // Sends you to the page that matches the live state (no redirect before the server answers)
@@ -174,17 +193,72 @@
 
   window.addEventListener('cos3:login-required', showLogin);
 
+  // In-page confirmation popup (instead of the browser's confirm()). Resolves to true if confirmed.
+  function confirmDialog(title, message, okLabel) {
+    return new Promise((resolve) => {
+      const dialog = document.createElement('dialog');
+      dialog.className = 'wf login';
+      dialog.setAttribute('aria-labelledby', 'cos3-confirm-title');
+      dialog.innerHTML = `
+<form method="dialog">
+  <div id="cos3-confirm-title" class="login-title"></div>
+  <p class="login-hint"></p>
+  <div class="row" style="justify-content:flex-end;gap:8px">
+    <button class="btn" value="cancel" autofocus>Cancel</button>
+    <button class="btn primary" value="ok"></button>
+  </div>
+</form>`;
+      dialog.querySelector('.login-title').textContent = title;
+      dialog.querySelector('.login-hint').textContent = message;
+      dialog.querySelector('[value="ok"]').textContent = okLabel;
+      // Esc or Cancel closes with returnValue "cancel" (or ""), the OK button with "ok"
+      dialog.addEventListener('close', () => {
+        resolve(dialog.returnValue === 'ok');
+        dialog.remove();
+      });
+      document.body.appendChild(dialog);
+      dialog.showModal();
+    });
+  }
+
+  window.COS3 = window.COS3 || {};
+  window.COS3.confirm = confirmDialog;
+
+  function confirmStop() {
+    return confirmDialog('Stop the simulation?', 'NOS3 and COSMOS will shut down. Unsaved simulation progress is lost.', '■ Stop simulation');
+  }
+  window.COS3.confirmStop = confirmStop;
+
   async function pollStatus() {
     // Server not reachable (no state): keep showing the last known state
     const res = await COS3.api.request('GET', '/api/status');
-    if (res.state) setState(res.state);
+    if (res.state) setStatus(res);
     setTimeout(pollStatus, STATUS_POLL_MS);
   }
+  // Header Pause/Resume button and Speed select
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest && e.target.closest('[data-cos3-btn="pause"]');
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    const res = await (liveStatus.paused ? COS3.api.resume() : COS3.api.pause());
+    if (res.error) alert(res.error);
+    else setStatus(res);
+    btn.disabled = false;
+  });
+
+  document.addEventListener('change', async (e) => {
+    const sel = e.target.closest && e.target.closest('[data-cos3-speed]');
+    if (!sel) return;
+    const res = await COS3.api.setSpeed(Number(sel.value));
+    if (res.error) alert(res.error);
+    else setStatus(res);
+    applyStatus(document);
+  });
 
   // Header Stop button (the wizard isn't reachable while a simulation runs)
   document.addEventListener('click', async (e) => {
     const btn = e.target.closest && e.target.closest('[data-cos3-btn="stop"]');
-    if (!btn || btn.disabled || !confirm('Stop the simulation?')) return;
+    if (!btn || btn.disabled || !(await confirmStop())) return;
     setState('stopping');
     // The next status poll shows the real state
     await COS3.api.stop();
@@ -216,12 +290,11 @@
 <header class="hdr" style="height:60px;flex:none;display:flex;align-items:center;gap:14px;padding:0 20px;box-sizing:border-box">
 <div style="display:flex;align-items:center;gap:10px"><div class="hdr-logo"></div><span style="font-weight:700;font-size:20px;letter-spacing:.04em">COS3</span></div>
 <div class="hdr-sep"></div>
-<div style="display:flex;flex-direction:column;line-height:1.25"><span class="hdr-sub">Mission</span><span style="font-size:14px;font-weight:600">[MISSION NAME]</span></div>
-<div style="display:flex;align-items:center;gap:8px"><label for="sat">Satellite</label><select id="sat" style="width:120px;height:36px"><option>SAT-1</option><option>SAT-2</option></select></div>
+<div style="display:flex;flex-direction:column;line-height:1.25"><span class="hdr-sub">Mission</span><span data-cos3-mission style="font-size:14px;font-weight:600">—</span></div>
 <div style="flex:1"></div>
-<div class="box" data-cos3-status style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px"><span data-cos3-dot class="${s.dot}"></span><span data-cos3-label style="font-weight:600;font-size:13px">${s.label}</span><span data-cos3-time class="mono" style="font-size:12px;color:var(--txt-2)">· ${s.time} UTC</span></div>
+<div class="box" data-cos3-status style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px"><span data-cos3-dot class="${s.dot}"></span><span data-cos3-label style="font-weight:600;font-size:13px">${s.label}</span></div>
 <div style="display:flex;gap:6px"><button class="btn" data-cos3-btn="start"${dis(s.start)}>▶ Start</button><button class="btn" data-cos3-btn="pause"${dis(s.pause)}>❚❚ Pause</button><button class="btn" data-cos3-btn="stop"${dis(s.stop)}>■ Stop</button></div>
-<div style="display:flex;align-items:center;gap:8px"><label for="spd">Speed</label><select id="spd" style="width:76px;height:36px"><option>0.5×</option><option selected>1×</option><option>2×</option><option>5×</option><option>10×</option></select></div>
+<div style="display:flex;align-items:center;gap:8px"><label for="spd">Speed</label><select id="spd" data-cos3-speed style="width:76px;height:36px" disabled>${SPEEDS.map((v) => `<option value="${v}"${v === 1 ? ' selected' : ''}>${v}×</option>`).join('')}</select></div>
 <div style="display:flex;flex-direction:column;line-height:1.25;border-left:1px solid var(--line);padding-left:12px"><span class="hdr-sub">[USER]</span><span style="font-size:13px;font-weight:600">Operator</span></div>
 <button class="theme-switch" type="button" role="switch" aria-checked="${t.dark}" data-cos3-btn="theme" title="${t.label}"><span class="theme-track"></span><span>${t.text}</span></button>
 </header>`;

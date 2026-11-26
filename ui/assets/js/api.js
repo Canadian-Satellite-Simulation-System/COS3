@@ -102,9 +102,28 @@
       return res;
     },
     // values: null for the default configuration, or { startUtc, durationS, components }.
-    // Resolves to { error } if the server refuses the values.
-    launch: (values) => request('POST', '/api/launch', values ? { values } : undefined),
+    // missionName: shown in the header while the mission runs. Resolves to { error } if the server refuses the values.
+    launch: (values, missionName) => request('POST', '/api/launch', { values: values || undefined, missionName }),
     stop: () => request('POST', '/api/stop'),
+    // Pause / resume / speed (one of 0.25 … 32) of the running simulation: resolve to the new status, or { error }
+    pause: () => request('POST', '/api/pause'),
+    resume: () => request('POST', '/api/resume'),
+    setSpeed: (speed) => request('POST', '/api/speed', { speed }),
+    // Saved configurations (configs/ in the repo): { configs: [{ file, missionName, savedAt, components, groundStations }] }
+    configs: () => request('GET', '/api/configs'),
+    // One saved configuration: { missionName, savedAt, values }
+    config: (file) => request('GET', `/api/configs/${encodeURIComponent(file)}`),
+    // Save to configs/: { file, config }, or { error }
+    saveConfig: (missionName, values) => request('POST', '/api/configs', { missionName, values }),
+    // Makes the browser download obj as a JSON file
+    download: (filename, obj) => {
+      const url = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2) + '\n'], { type: 'application/json' }));
+      const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    },
     // Latest values of a component's telemetry packet ('data' or 'hk'): { component, target, packet,
     // receivedCount, spacecraftTime, lastUpdate, rows, allItems }, or { error, status } (401 = log in to COSMOS)
     telemetry: (componentKey, packet = 'data', path = 'DEBUG') =>
